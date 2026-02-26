@@ -4,6 +4,19 @@ import pandas as pd
 
 from src.logging_config import setup_logging
 
+TARGET_COLS = [
+    "model", "year", "price", "transmission", "mileage",
+    "fuelType", "tax", "mpg", "engineSize"
+]
+
+RENAME_MAP = {
+    "tax(£)": "tax",
+    "fuel type": "fuelType",
+    "fuelType": "fuelType",
+    "engine size": "engineSize",
+    "engineSize": "engineSize",
+}
+
 def combine_csv_files(directory: str|Path, logger) -> pd.DataFrame:
     """Combine all CSV files in the given directory into a single DataFrame."""
     p = Path(directory)
@@ -13,45 +26,91 @@ def combine_csv_files(directory: str|Path, logger) -> pd.DataFrame:
     if not p.is_dir():
         logger.error("Path is not a directory: %s",  p.resolve())
         raise ValueError(f"Path {p.resolve()} is not a directory.") 
-    csv_files = list(p.glob("*.csv"))
+    csv_files = sorted(p.glob("*.csv"))
     if not csv_files:
         logger.error("No CSV files found in directory: %s",  p.resolve())
         raise ValueError(f"No CSV files found in directory {p.resolve()}.")
     logger.info("Found %d CSV files in directory: %s", len(csv_files), p)
-    df_list = []
+    combined_df = pd.DataFrame()
+    base_columns = None
+
     for csv_file in csv_files:
         logger.info("Loading CSV: %s", csv_file)
         df = pd.read_csv(csv_file)
-        df_list.append(df)
-    combined_df = pd.concat(df_list, ignore_index=True)
+        df = standardize_columns(df, logger)
+        if base_columns is None:
+            base_columns = set(df.columns)
+        else:
+            if set(df.columns) != base_columns:
+                logger.warning("Column mismatch in %s", csv_file)                
+        combined_df = pd.concat([combined_df, df], ignore_index=True)
+    combined_df = combined_df.dropna(how="all")  # Drop columns that are all NaN
     logger.info("Combined DataFrame shape: %s", combined_df.shape)
     logger.info("Saving combined CSV to: %s", p / "combined.csv")
-    combined_df.to_csv(p / "combined.csv", index=False)
     return combined_df
 
-def load_data(path: str|Path, logger) -> pd.DataFrame:
-    """Load the data from the given directory.
+def standardize_columns(df: pd.DataFrame, logger) -> pd.DataFrame:
+    # 1) normalize names: strip spaces, keep case consistent
+    df = df.copy()
+    df.columns = [c.strip() for c in df.columns]
 
-    Args:
-        data_dir (Path): The directory containing the data."""
-    p = Path(path)
-    if not p.exists():
-        logger.error("CSV not found: %s",  p.resolve())
-        raise FileNotFoundError(f"Path {p.resolve()} does not exist.")
-    if not p.is_file():
-        logger.error("Path is not a file: %s",  p.resolve())
-        raise ValueError(f"Path {p.resolve()} is not a file.")
-    if p.suffix != ".csv":
-        logger.error("Path is not a CSV file: %s",  p.resolve())
-        raise ValueError(f"Path {p.resolve()} is not a CSV file.")
-    logger.info("Loading CSV: %s", p)
-    return pd.read_csv(p)
+    # 2) rename known variants
+    df = df.rename(columns=RENAME_MAP)
+
+    # 3) coalesce duplicate fields (prefer primary, fallback to *2)
+    COALESCE_PAIRS = [
+    ("mileage", "mileage2"),
+    ("fuelType", "fuelType2"),
+    ("engineSize", "engineSize2"),
+]
+
+    for primary, secondary in COALESCE_PAIRS:
+        df = coalesce_columns(df, primary, secondary, logger)
+
+    # 4) keep only columns we want (ignore extras like reference)
+    missing = [c for c in TARGET_COLS if c not in df.columns]
+    if missing:
+        logger.warning("Missing expected columns after standardization: %s", missing)
+        for c in missing:
+            df[c] = pd.NA  # create missing columns
+
+    df = df[TARGET_COLS]
+    return df
+
+def coalesce_columns(
+    df: pd.DataFrame,
+    primary: str,
+    secondary: str,
+    logger,
+) -> pd.DataFrame:
+    """
+    Merge secondary column into primary column.
+    Primary takes precedence; secondary fills missing values.
+    """
+    if secondary not in df.columns:
+        return df
+
+    logger.info("Coalescing '%s' <- '%s'", primary, secondary)
+
+    if primary not in df.columns:
+        df[primary] = pd.NA
+
+    before_missing = df[primary].isna().sum()
+
+    df[primary] = df[primary].fillna(df[secondary])
+
+    after_missing = df[primary].isna().sum()
+    filled = before_missing - after_missing
+
+    logger.info("Filled %s missing values in '%s' from '%s'", filled, primary, secondary)
+
+    return df
 
 def basic_report(df: pd.DataFrame, target: str, logger) -> None:
     """Print a basic report of the data."""
     logger.info("===DATA REPORT===")
     logger.info(f"Number of rows: {len(df):,}")
-    logger.info(f"Number of columns: %s", {df.shape[1]})
+    logger.info("Number of columns: %s", df.shape[1])
     logger.info(f"Shape: {df.shape}")
     logger.info("Columns: %s", ", ".join(df.columns))
 
@@ -88,6 +147,24 @@ def basic_report(df: pd.DataFrame, target: str, logger) -> None:
 
     logger.info("===END OF REPORT===")
 
+def load_data(path: str|Path, logger) -> pd.DataFrame:
+    """Load the data from the given directory.
+
+    Args:
+        data_dir (Path): The directory containing the data."""
+    p = Path(path)
+    if not p.exists():
+        logger.error("CSV not found: %s",  p.resolve())
+        raise FileNotFoundError(f"Path {p.resolve()} does not exist.")
+    if not p.is_file():
+        logger.error("Path is not a file: %s",  p.resolve())
+        raise ValueError(f"Path {p.resolve()} is not a file.")
+    if p.suffix != ".csv":
+        logger.error("Path is not a CSV file: %s",  p.resolve())
+        raise ValueError(f"Path {p.resolve()} is not a CSV file.")
+    logger.info("Loading CSV: %s", p)
+    return pd.read_csv(p)
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Load CSV and print a basic data quality report.")
     parser.add_argument("--path", required=True, help="Path to CSV in data/raw/")
@@ -99,8 +176,10 @@ def main() -> None:
     logger = setup_logging(level=args.log_level, log_file=args.log_file)
 
     try:
-        #df = combine_csv_files(args.path, logger)
-        df = load_data(args.path, logger)
+        df = combine_csv_files(args.path, logger)
+        logger.info("Saving combined CSV to: %s", args.path + "/combined.csv")
+        df.to_csv(Path(args.path + "/combined.csv") , index=False)
+        #df = load_data(args.path, logger)
         basic_report(df, args.target, logger)
     except Exception:
         # Logs full stack trace
