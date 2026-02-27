@@ -50,14 +50,11 @@ def combine_csv_files(directory: str|Path, logger) -> pd.DataFrame:
     return combined_df
 
 def standardize_columns(df: pd.DataFrame, logger) -> pd.DataFrame:
-    # 1) normalize names: strip spaces, keep case consistent
     df = df.copy()
     df.columns = [c.strip() for c in df.columns]
 
-    # 2) rename known variants
     df = df.rename(columns=RENAME_MAP)
 
-    # 3) coalesce duplicate fields (prefer primary, fallback to *2)
     COALESCE_PAIRS = [
     ("mileage", "mileage2"),
     ("fuelType", "fuelType2"),
@@ -67,7 +64,6 @@ def standardize_columns(df: pd.DataFrame, logger) -> pd.DataFrame:
     for primary, secondary in COALESCE_PAIRS:
         df = coalesce_columns(df, primary, secondary, logger)
 
-    # 4) keep only columns we want (ignore extras like reference)
     missing = [c for c in TARGET_COLS if c not in df.columns]
     if missing:
         logger.warning("Missing expected columns after standardization: %s", missing)
