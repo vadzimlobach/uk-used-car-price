@@ -1,8 +1,7 @@
 import argparse
 from pathlib import Path
-from venv import logger
 import pandas as pd
-from pandas.api.types import is_string_dtype
+from pandas.api.types import is_object_dtype, is_string_dtype
 from src.logging_config import setup_logging
 from src.data_io import read_data_from_file, save_preprocessed_data
 
@@ -11,7 +10,62 @@ PREPROCESS_CONFIG = {
     "categorical_fill_value": "Unknown",
     "numeric_fill_strategy": "median",  # or "mean"
     "invalid_target_threshold": 0.1,  # Warn if more than 10% of rows are dropped due to invalid target
+    "reference_year": 2026,  # For calculating car age
+    "min_year": 1970,  # Minimum valid year for cars
+    "max_year": 2026,  # Maximum valid year for cars
+    "max_mileage_per_year": 50000,  # Maximum valid mileage for cars
 }
+
+def preprocess_data(df: pd.DataFrame, target: str, logger, config: dict) -> pd.DataFrame:
+    """Preprocess the data by cleaning the target column."""
+    
+    validate_column_exists(df, target, logger)
+    
+    logger.info("Starting preprocess. Raw shape=%s", df.shape)
+
+    df = drop_empty_columns(df, logger)
+    df = remove_duplicate_rows(df, logger)
+    # Clean the target column
+    df[target] = clean_price(df[target])
+    df = remove_invalid_target_rows(df, target, logger, config)
+    df = handle_missing_values(df, target, logger, config)
+    df['mileage'] = clean_numeric_column(df['mileage'])
+    df = add_features(df, logger, config)
+    
+    logger.info("Finished preprocess. Cleaned shape=%s", df.shape)
+
+    return df
+
+def add_features(df: pd.DataFrame, logger, config: dict) -> pd.DataFrame:
+    logger.info("Adding derived features.")
+    validate_column_exists(df, "year", logger)
+    validate_column_exists(df, "mileage", logger)
+    
+    rows_start = df.shape[0]
+    
+    df =drop_rows_with_missing_target(df, "year", logger)
+    df = drop_rows_not_in_range(df, "year", config["min_year"], config["max_year"], logger)
+    car_age = config["reference_year"] - df["year"]
+    df = df.copy()  # Avoid SettingWithCopyWarning
+    df['car_age'] = car_age
+    logger.info("%s rows dropped due to car age rules.", rows_start - df.shape[0])
+    logger.info("min car age: %s, max car age: %s", df['car_age'].min(), df['car_age'].max())
+    
+
+    before_rows = df.shape[0]
+    df = drop_rows_with_missing_target(df, "mileage", logger)
+    df = drop_rows_with_negative_target(df, "mileage", logger, drop_zero=True)
+    age_for_division = df['car_age'].clip(lower=1)  # Avoid division by zero for new cars
+    df = df.copy()  # Avoid SettingWithCopyWarning
+    df['mileage_per_year'] = df['mileage'] / age_for_division 
+    df = drop_rows_not_in_range(df, "mileage_per_year", 0, config["max_mileage_per_year"], logger)
+    logger.info("Dropped %s rows due to milage rules", before_rows - df.shape[0])
+    logger.info("min mileage_per_year: %s, max mileage_per_year: %s", df['mileage_per_year'].min(), df['mileage_per_year'].max())
+
+    rows_end = df.shape[0]
+    
+    logger.info("Added derived features. Rows before: %s, after: %s, dropped: %s", rows_start, rows_end, rows_start - rows_end)
+    return df
 
 def clean_price(series: pd.Series) -> pd.Series:
     """Clean the price column by removing currency symbols and commas."""
@@ -24,23 +78,16 @@ def clean_price(series: pd.Series) -> pd.Series:
         )
     return pd.to_numeric(series, errors="coerce")
 
-def preprocess_data(df: pd.DataFrame, target: str, logger, config: dict) -> pd.DataFrame:
-    """Preprocess the data by cleaning the target column."""
-    
-    validate_target_exists(df, target, logger)
-    
-    logger.info("Starting preprocess. Raw shape=%s", df.shape)
-
-    df = drop_empty_columns(df, logger)
-    df = remove_duplicate_rows(df, logger)
-    # Clean the target column
-    df[target] = clean_price(df[target])
-    df = remove_invalid_target_rows(df, target, logger, config)
-    df = handle_missing_values(df, target, logger, config)
-    
-    logger.info("Finished preprocess. Cleaned shape=%s", df.shape)
-
-    return df
+def clean_numeric_column(series: pd.Series) -> pd.Series:
+    """Clean the column by removing commas and stripping whitespace."""
+    if is_string_dtype(series) or is_object_dtype(series):  # Object or string type
+        series = (
+            series.astype(str)
+            .str.replace(",", "", regex=False)
+            .str.replace(r"[^0-9.-]", "", regex=True)  # Remove any non-numeric characters except dot and minus
+            .str.strip()
+        )
+    return pd.to_numeric(series, errors="coerce")
 
 def handle_missing_values(df: pd.DataFrame, target: str, logger, config: dict) -> pd.DataFrame:
     logger.info("Handling missing values.")
@@ -48,7 +95,6 @@ def handle_missing_values(df: pd.DataFrame, target: str, logger, config: dict) -
     df = handle_missing_cat(df, logger, config)
     logger.info("Done handling missing values.")
     return df
-        
 
 def handle_missing_num(df: pd.DataFrame, target: str, logger, config: dict) -> pd.DataFrame:
     logger.info("Filling missing values in numeric columns with '%s'.", config["numeric_fill_strategy"])
@@ -84,13 +130,36 @@ def handle_missing_cat(df: pd.DataFrame, logger, config: dict) -> pd.DataFrame:
     logger.info("Done filling categorical missing values.")
     return df
 
-
-def validate_target_exists(df: pd.DataFrame, target: str, logger) -> None:
+def validate_column_exists(df: pd.DataFrame, target: str, logger) -> None:
     logger.info("Validating target column '%s' exists in DataFrame.", target)
     if target not in df.columns:
         logger.error("Target column '%s' not found. Available: %s", target, list(df.columns))
         raise ValueError(f"Target column '{target}' not found. Available: {list(df.columns)}")
     logger.info("'%s' column found", target) 
+
+def drop_rows_with_missing_target(df: pd.DataFrame, target: str, logger) -> pd.DataFrame:
+    before_rows = df.shape[0]
+    df = df.dropna(subset=[target])  # Drop rows where target is NaN
+    dropped = before_rows - df.shape[0]
+    logger.info("Dropped %s rows with missing %s values.", dropped, target)
+    return df
+
+def drop_rows_not_in_range(df: pd.DataFrame, target: str, min_val, max_val, logger) -> pd.DataFrame:
+    before_rows = df.shape[0]
+    df = df[df[target].between(min_val, max_val)]
+    dropped = before_rows - df.shape[0]
+    logger.info("Dropped %s rows with %s values outside of [%s, %s].", dropped, target, min_val, max_val)
+    return df
+
+def drop_rows_with_negative_target(df: pd.DataFrame, target: str, logger, drop_zero: bool = False) -> pd.DataFrame:
+    before_rows = df.shape[0]
+    if drop_zero:
+        df = df[df[target] > 0]  # Drop rows where target is negative or zero
+    else:
+        df = df[df[target] >= 0]  # Drop rows where target is negative
+    dropped = before_rows - df.shape[0]
+    logger.info("Dropped %s rows with negative %s values.", dropped, target)
+    return df
 
 def drop_empty_columns(df: pd.DataFrame, logger) -> pd.DataFrame:
     logger.info("Dropping columns that are all NaN.")

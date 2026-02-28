@@ -13,6 +13,7 @@ def test_preprocess_cli_creates_output_csv(tmp_path: Path):
 
     df = pd.DataFrame({
         "price": ["£1000", "£2000", None, "-50"],
+        "year": [2020, 2019, 2018, 2017],          # <-- add year
         "mileage": [10_000, None, 30_000, 40_000],
         "transmission": ["Manual", None, "Auto", "Manual"],
     })
@@ -34,4 +35,6 @@ def test_preprocess_cli_creates_output_csv(tmp_path: Path):
 
     out_df = pd.read_csv(out_path)
     assert "price" in out_df.columns
-    assert (out_df["price"] >= 0).all()
+    assert "car_age" in out_df.columns
+    assert "mileage_per_year" in out_df.columns
+    assert (out_df["price"] > 0).all()
