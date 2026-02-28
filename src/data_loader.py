@@ -27,16 +27,18 @@ def combine_csv_files(directory: str|Path, logger) -> pd.DataFrame:
         logger.error("Path is not a directory: %s",  p.resolve())
         raise ValueError(f"Path {p.resolve()} is not a directory.") 
     csv_files = sorted(p.glob("*.csv"))
+    csv_files = [f for f in csv_files if f.name != "combined.csv"]  # Exclude combined.csv if it exists
     if not csv_files:
         logger.error("No CSV files found in directory: %s",  p.resolve())
         raise ValueError(f"No CSV files found in directory {p.resolve()}.")
     logger.info("Found %d CSV files in directory: %s", len(csv_files), p)
     combined_df = pd.DataFrame()
     base_columns = None
-
+    total_rows = 0
     for csv_file in csv_files:
         logger.info("Loading CSV: %s", csv_file)
         df = pd.read_csv(csv_file)
+        logger.info("number of rows in %s: %s, columns: %s", csv_file, df.shape[0], df.shape[1])
         df = standardize_columns(df, logger)
         if base_columns is None:
             base_columns = set(df.columns)
@@ -44,6 +46,8 @@ def combine_csv_files(directory: str|Path, logger) -> pd.DataFrame:
             if set(df.columns) != base_columns:
                 logger.warning("Column mismatch in %s", csv_file)                
         combined_df = pd.concat([combined_df, df], ignore_index=True)
+        total_rows += df.shape[0]
+    logger.info("Combined DataFrame total rows before dropping all-NaN columns: %s", total_rows)
     combined_df = combined_df.dropna(how="all")  # Drop columns that are all NaN
     logger.info("Combined DataFrame shape: %s", combined_df.shape)
     logger.info("Saving combined CSV to: %s", p / "combined.csv")

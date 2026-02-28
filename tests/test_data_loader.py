@@ -214,6 +214,55 @@ def test_combine_csv_files_success_and_standardizes(tmp_path: Path, logger):
     assert list(out.columns) == TARGET_COLS
     assert out.shape[0] == 2
     assert out.loc[out["model"] == "b", "mileage"].iloc[0] == 40000
+    
+def test_combine_csv_files_exclude_combined_csv(tmp_path: Path, logger):
+    d = tmp_path / "data"
+    d.mkdir()
+
+    df1 = pd.DataFrame({
+        "model": ["a4", "a3"],
+        "year": [2019, 2018],
+        "price": [1000, 5000],
+        "transmission": ["Manual", "Manual"],
+        "mileage": [50000, 35000],
+        "fuelType": ["Petrol", "Diesel"],
+        "tax": [150, 200],
+        "mpg": [55.0, 45.0],
+        "engineSize": [1.6, 2.0],
+    })
+
+    df2 = pd.DataFrame({
+        "model": ["3 series", "3 series", "X5"],
+        "year": [2018, 2018, 2019],
+        "price": [900, 5700, 15000],
+        "transmission": ["Auto", "Auto", "Auto"],
+        "mileage2": [40000, 45000, 55000],
+        "fuel type": ["Diesel", "Diesel", "Petrol"],
+        "engine size": [2.0, 2.0, 1.8],
+    })
+
+    df3 = pd.DataFrame({
+        "model": ["Golf", "Tiguan", "Touareg"],
+        "year": [2019, 2018, 2017],
+        "price": [1000, 5000, 8000],
+        "transmission": ["Manual", "Manual", "Manual"],
+        "mileage": [50000, 35000, 45000],
+        "fuelType": ["Petrol", "Diesel", "Diesel"],
+        "tax": [150, 200, 250],
+        "mpg": [55.0, 45.0, 40.0],
+        "engineSize": [1.6, 2.0, 1.8],
+    })
+
+    write_csv(d / "a.csv", df1)
+    write_csv(d / "b.csv", df2)
+    write_csv(d / "combined.csv", df3)
+
+    out = combine_csv_files(d, logger)
+
+    assert list(out.columns) == TARGET_COLS
+    assert out.shape[0] == 5  # 2 from df1, 3 from df2 (mileage filled from mileage2), none from combined.csv
+    assert out.loc[out["model"] == "3 series", "mileage"].tolist() == [40000, 45000]
+    assert out.loc[out["model"] == "a4", "mileage"].tolist() == [50000]
 
 
 # -----------------------
