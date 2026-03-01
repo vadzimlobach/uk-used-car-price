@@ -9,6 +9,7 @@ from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
 from sklearn.model_selection import cross_validate, KFold
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import r2_score, root_mean_squared_error, mean_absolute_error, make_scorer
 import pandas as pd
 import numpy as np
@@ -30,7 +31,7 @@ def set_X_y(train_df: pd.DataFrame, test_df: pd.DataFrame) -> tuple[pd.DataFrame
     y_test = test_df["price"]
     return X_train, y_train, X_test, y_test
 
-def build_model_pipeline(X_train: pd.DataFrame) -> Pipeline:
+def build_model_pipeline(X_train: pd.DataFrame, model_type: str="linear") -> Pipeline:
     numeric_features=X_train.select_dtypes(include=["number"]).columns
     categorical_features = X_train.select_dtypes(include=["object", "string", "category"]).columns
 
@@ -44,9 +45,24 @@ def build_model_pipeline(X_train: pd.DataFrame) -> Pipeline:
         ], remainder="drop"
     )
 
+    if model_type == "linear":
+        regressor = LinearRegression()
+    elif model_type == "rf":
+        regressor = RandomForestRegressor(
+            n_estimators=300,
+            random_state=42,
+            n_jobs=-1,
+            max_depth=None,
+            min_samples_split=2,
+            min_samples_leaf=1,
+        )
+    else:
+        raise ValueError(f"Unknown model_type: {model_type}")
+
+
     model = Pipeline(steps=[
         ("preprocessor", preprocessor),
-        ("regressor", LinearRegression()),
+        ("regressor", regressor),
     ])
 
     return model
@@ -163,6 +179,7 @@ def main() -> None:
     parser.add_argument("--run-name", dest="run_name", default="baseline_linear_v1", help="Name for the training run (optional)")
     parser.add_argument("--target", default="price", help="Target column name")
     parser.add_argument("--log-target", dest="log_target", action="store_true", help="Train on log1p(target) and invert predictions for metric reporting")
+    parser.add_argument("--model", default="linear", choices=["linear", "rf"], help="Which regressor to train")
     args = parser.parse_args()
 
     logger = setup_logging(level=args.log_level)
@@ -183,8 +200,8 @@ def main() -> None:
     logger.info("Starting training with input data from %s", args.in_path)
     train_df, test_df = train_test_split_data(in_path=Path(args.in_path), logger=logger)
     X_train, y_train, X_test, y_test = set_X_y(train_df, test_df)
-    model = build_model_pipeline(X_train)
-    cv_model = build_model_pipeline(X_train)  # separate instance for CV to avoid data leakage from fitting the final model
+    model = build_model_pipeline(X_train, model_type=args.model)
+    cv_model = build_model_pipeline(X_train, model_type=args.model)  # separate instance for CV to avoid data leakage from fitting the final model
     cv_summary = cross_validate_model(
     X_train,
     y_train,
