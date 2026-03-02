@@ -9,13 +9,14 @@ from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
 from sklearn.model_selection import cross_validate, KFold
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.linear_model import LinearRegression
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestRegressor, HistGradientBoostingRegressor
 from sklearn.metrics import r2_score, root_mean_squared_error, mean_absolute_error, make_scorer
 import pandas as pd
 import numpy as np
 from pathlib import Path
 from src.data_io import read_data_from_file
 from src.logging_config import setup_logging
+from src.analyze import analyze_residuals, get_feature_importance
 
 random_state = 42
 
@@ -55,6 +56,13 @@ def build_model_pipeline(X_train: pd.DataFrame, model_type: str="linear") -> Pip
             max_depth=None,
             min_samples_split=2,
             min_samples_leaf=1,
+        )
+    elif model_type == "gb":
+        regressor = HistGradientBoostingRegressor(
+            max_depth=None,
+            learning_rate=0.1,
+            max_iter=300,
+            random_state=42
         )
     else:
         raise ValueError(f"Unknown model_type: {model_type}")
@@ -179,7 +187,7 @@ def main() -> None:
     parser.add_argument("--run-name", dest="run_name", default="baseline_linear_v1", help="Name for the training run (optional)")
     parser.add_argument("--target", default="price", help="Target column name")
     parser.add_argument("--log-target", dest="log_target", action="store_true", help="Train on log1p(target) and invert predictions for metric reporting")
-    parser.add_argument("--model", default="linear", choices=["linear", "rf"], help="Which regressor to train")
+    parser.add_argument("--model", default="linear", choices=["linear", "rf", "gb"], help="Which regressor to train")
     args = parser.parse_args()
 
     logger = setup_logging(level=args.log_level)
@@ -213,6 +221,9 @@ def main() -> None:
 
     logger.info("CV summary: %s", cv_summary)
     metrics = train_and_evaluate_model(model, X_train, y_train, X_test, y_test, args.log_target)
+    analyze_residuals(model, X_test, y_test, logger)
+    # feature_importance = get_feature_importance(model)
+    # logger.info("Feature importance: %s", feature_importance.head(20))
     metrics_payload: dict[str, Any] = {
         "log-target": args.log_target,
         "run_name": run_name,

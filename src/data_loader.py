@@ -5,7 +5,7 @@ import pandas as pd
 from src.logging_config import setup_logging
 
 TARGET_COLS = [
-    "model", "year", "price", "transmission", "mileage",
+    "brand","model", "year", "price", "transmission", "mileage",
     "fuelType", "tax", "mpg", "engineSize"
 ]
 
@@ -38,6 +38,12 @@ def combine_csv_files(directory: str|Path, logger) -> pd.DataFrame:
     for csv_file in csv_files:
         logger.info("Loading CSV: %s", csv_file)
         df = pd.read_csv(csv_file)
+        brand = csv_file.stem
+        if brand.lower().__contains__("cclass") or brand.lower().__contains__("merc"):
+            brand = "mercedes"
+        if brand.lower().__contains__("focus"):
+            brand = "ford"
+        df['brand'] = brand  # Add brand column based on filename
         logger.info("number of rows in %s: %s, columns: %s", csv_file, df.shape[0], df.shape[1])
         df = standardize_columns(df, logger)
         if base_columns is None:
