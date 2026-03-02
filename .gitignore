@@ -1,16 +1,19 @@
 #data
-data/
+data/processed/
 models/
 reports/
 logs/
+artifacts/
 
 #python
 __pycache__/
+.pytest_cache/
 *.pyc
 .venv/
 venv/
 .env
 
 #IDE
+.DS_Store
 .vscode/
 .idea/

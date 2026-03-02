@@ -189,7 +189,7 @@ def test_future_year_is_dropped(logger, test_config):
     out = preprocess_data(df, target="price", logger=logger, config=test_config)
 
     assert out.shape[0] == 1
-    assert out["year"].iloc[0] == 2020
+    assert "year" not in out.columns  # year is intentionally dropped after deriving car_age
 
 
 def test_mileage_string_is_cleaned_and_feature_runs(logger, test_config):
