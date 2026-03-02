@@ -48,6 +48,7 @@ def add_features(df: pd.DataFrame, logger, config: dict) -> pd.DataFrame:
     car_age = config["reference_year"] - df["year"]
     df = df.copy()  # Avoid SettingWithCopyWarning
     df['car_age'] = car_age
+    df = df.drop(columns=["year"])  # Drop original year column after creating car_age
     logger.info("%s rows dropped due to car age rules.", rows_start - df.shape[0])
     logger.info("min car age: %s, max car age: %s", df['car_age'].min(), df['car_age'].max())
     

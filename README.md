@@ -37,6 +37,15 @@ uk-used-car-price/
 >  --out data/processed/processed.csv \
 >  --target price
 >```
+> ```bash
+> python3 -m src.train --in data/processed/processed.csv --model-out src/models/rf.joblib --metrics-out src/reports/rf_metrics.json --model rf --run-name baseline_rf
+>```
+>```bash
+> python3 -m src.preprocess --in data/raw/combined.csv --out data/processed/processed.csv
+>```
+>```bash
+> python3 -m src.data_loader --path data/raw
+>```
 
 ## 🧪Testing
 >Unit tests cover:
