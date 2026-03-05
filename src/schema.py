@@ -18,7 +18,6 @@ class CarFeatures(BaseModel):
     
     year: int = Field(..., ge=1950, le=2026, description="Year of manufacture")
     mileage: int = Field(..., ge=0, description="Mileage in miles")
-    price: int = Field(..., ge=0, description="Price in pounds")
     tax: float = Field(..., ge=0,description="Tax in pounds")
     mpg: float = Field(..., ge=0, description="Miles per gallon")
     engineSize: float = Field(..., ge=0, description="Engine size in liters")
@@ -29,3 +28,6 @@ class CarFeatures(BaseModel):
 
     def to_dict(self) -> dict:
         return self.model_dump()
+
+class CarTrainingFeatures(CarFeatures):
+    price: int = Field(..., ge=0, description="Price in pounds")

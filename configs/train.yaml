@@ -9,6 +9,14 @@ model_type: "rf"
 data:
   input_path: "data/processed/processed.csv"
   target: "price"
+  allow_zero_price: False
+  categorical_fill_value: "Unknown"
+  numeric_fill_strategy: "median"  # or "mean"
+  invalid_target_threshold: 0.1  # Warn if more than 10% of rows are dropped due to invalid target
+  reference_year: 2026  # For calculating car age
+  min_year: 1970  # Minimum valid year for cars
+  max_year: 2026  # Maximum valid year for cars
+  max_mileage_per_year: 50000
 
 model:
   rf:
