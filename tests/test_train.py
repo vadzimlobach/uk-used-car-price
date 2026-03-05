@@ -3,9 +3,10 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import pytest
+import yaml
 
 import src.train as train_mod
+from src.train import main
 
 
 class DummyLogger:
@@ -108,54 +109,52 @@ def test_save_artifacts_writes_metrics_and_model(tmp_path, monkeypatch):
     assert payload == {"a": 1}
 
 
-def test_main_smoke(monkeypatch, tmp_path):
-    """
-    Runs main() end-to-end with everything mocked:
-    - config loaded from temp yaml
-    - data read mocked to toy df
-    - logging mocked
-    - residual analysis mocked
-    - artifacts saved into tmp_path
-    """
-    # 1) create temp config yaml
-    cfg_path = tmp_path / "train.yaml"
-    cfg = {
+def test_main_smoke_creates_versioned_run(tmp_path, monkeypatch):
+    # --- create tiny dataset on the fly ---
+    df = pd.DataFrame(
+        {
+            # target
+            "price": [5000, 6000, 7000, 8000, 9000, 10000],
+            # minimal numeric features (should work with RF)
+            "car_age": [10, 9, 8, 7, 6, 5],
+            "mileage_per_year": [12000, 11000, 10000, 9000, 8000, 7000],
+        }
+    )
+    data_path = tmp_path / "processed_small.csv"
+    df.to_csv(data_path, index=False)
+
+    # --- config pointing to tmp data + tmp artifacts dir ---
+    config = {
+        "run_name": "rf_baseline",
         "log_level": "INFO",
-        "run_name": "test_run",
         "random_state": 42,
-        "data": {"input_path": "ignored.csv", "target": "price"},
-        "cv": {"n_splits": 3, "shuffle": True},
         "model_type": "rf",
-        "model": {"log_target": False, "rf": {"params": {"n_estimators": 5, "max_depth": 3}}},
-        "output": {
-            "model_path": str(tmp_path / "artifacts" / "models" / "m.joblib"),
-            "metrics_path": str(tmp_path / "artifacts" / "reports" / "metrics.json"),
-            "cv_summary_path": str(tmp_path / "artifacts" / "reports" / "cv.json"),
-        },
+        "data": {"input_path": str(data_path), "target": "price"},
+        "model": {"rf": {"params": {"n_estimators": 5, "max_depth": 3}}},
+        "cv": {"n_splits": 2, "shuffle": True},
+        "analysis": {"save_figures": False},
+        "artifacts_dir": str(tmp_path / "artifacts" / "runs"),
     }
-    import yaml
-    cfg_path.write_text(yaml.safe_dump(cfg), encoding="utf-8")
 
-    # 2) mock read_data_from_file to return toy df
-    monkeypatch.setattr(train_mod, "read_data_from_file", lambda in_path, logger: _toy_df())
+    cfg_path = tmp_path / "train.yaml"
+    cfg_path.write_text(yaml.safe_dump(config))
 
-    # 3) mock logging + residuals
-    monkeypatch.setattr(train_mod, "setup_logging", lambda level: DummyLogger())
-    monkeypatch.setattr(train_mod, "analyze_residuals", lambda *args, **kwargs: None)
+    # run main as CLI
+    monkeypatch.setattr("sys.argv", ["train", "--config", str(cfg_path)])
+    main()
+    runs_base = Path(config["artifacts_dir"])
+    assert runs_base.exists()
 
-    # 4) mock argparse to pass our config path
-    class Args:
-        config = cfg_path
+    # assertions: latest pointer and expected files in run dir
+    runs_base = Path(config["artifacts_dir"])
+    latest = runs_base / "latest_run.txt"
+    assert latest.exists()
 
-    monkeypatch.setattr(train_mod.argparse.ArgumentParser, "parse_args", lambda self: Args())
+    run_id = latest.read_text().strip()
+    run_dir = runs_base / run_id
+    assert run_dir.exists() and run_dir.is_dir()
 
-    # 5) run main
-    train_mod.main()
-
-    # 6) assert artifacts written
-    assert Path(cfg["output"]["model_path"]).exists()
-    assert Path(cfg["output"]["metrics_path"]).exists()
-
-    metrics_payload = json.loads(Path(cfg["output"]["metrics_path"]).read_text(encoding="utf-8"))
-    assert "metrics" in metrics_payload
-    assert "config" in metrics_payload
+    assert (run_dir / "model.joblib").exists()
+    assert (run_dir / "metrics.json").exists()
+    assert (run_dir / "cv_summary.json").exists()
+    assert (run_dir / "config.yaml").exists()
