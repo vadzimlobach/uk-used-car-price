@@ -222,7 +222,9 @@ def main() -> None:
 
     # Residual analysis (best-effort)
     try:
-        analyze_residuals(final_estimator, X_test, y_test, logger)
+        if config.get("analysis", {}).get("save_figures", True):
+            analyze_residuals(final_estimator, X_test, y_test, logger, out_dir=run_dir / "figures")
+            logger.info("Saved residual analysis figures to %s", run_dir / "figures")
     except Exception as e:
         logger.warning("Residual analysis failed (non-fatal): %s", e)
 

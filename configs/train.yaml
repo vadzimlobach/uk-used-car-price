@@ -29,7 +29,7 @@ cv:
   n_splits: 5
   shuffle: True
 
-output:
-  model_path: "artifacts/models/rf.joblib"
-  metrics_path: "artifacts/reports/rf_metrics.json"
-  cv_summary_path: "artifacts/reports/rf_cv_summary.json"
+artifacts_dir: "artifacts/runs"
+
+analysis:
+  save_figures: True
