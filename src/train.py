@@ -166,7 +166,8 @@ def main() -> None:
     logger = setup_logging(config["log_level"])
 
     run_name = config["run_name"]
-    run_dir = create_run_dir('artifacts/runs', run_name)
+    runs_base_dir = config.get("artifacts_dir", "artifacts/runs")
+    run_dir = create_run_dir(runs_base_dir, run_name)
     logger.info("Run directory: %s", run_dir)
 
     random_state = int(config["random_state"])
@@ -248,7 +249,7 @@ def main() -> None:
 
     save_artifacts(model=final_estimator, metrics=metrics_payload, model_out=model_path, metrics_out=metrics_path, logger=logger)
     save_config_copy(config, run_dir)
-    update_latest_run('artifacts/runs', run_dir.name)
+    update_latest_run(runs_base_dir, run_dir.name) 
     add_link_to_code_version(run_dir)
     logger.info("Model evaluation metrics: %s", metrics)
 
