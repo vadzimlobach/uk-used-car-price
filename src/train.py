@@ -16,6 +16,7 @@ from src.data_io import read_data_from_file
 from src.logging_config import setup_logging
 from src.analyze import analyze_residuals
 from src.model_utils import build_model_pipeline, wrap_log_target
+from src.run_utils import create_run_dir, save_config_copy, update_latest_run, add_link_to_code_version
 
 
 def load_config(config_path: Path) -> dict:
@@ -164,15 +165,18 @@ def main() -> None:
     config = load_config(args.config)
     logger = setup_logging(config["log_level"])
 
-    run_name = config.get("run_name", "run")
+    run_name = config["run_name"]
+    run_dir = create_run_dir('artifacts/runs', run_name)
+    logger.info("Run directory: %s", run_dir)
+
     random_state = int(config["random_state"])
     input_path = Path(config["data"]["input_path"])
     target = config["data"]["target"]
 
     cv_config = config["cv"]
-    model_path = Path(config["output"]["model_path"])
-    metrics_path = Path(config["output"]["metrics_path"])
-    cv_summary_path = Path(config["output"]["cv_summary_path"])
+    model_path = Path(run_dir / "model.joblib")
+    metrics_path = Path(run_dir / "metrics.json")
+    cv_summary_path = Path(run_dir / "cv_summary.json")
 
     model_type = config["model_type"]
     log_target = bool(config["model"].get("log_target", False))
@@ -218,7 +222,9 @@ def main() -> None:
 
     # Residual analysis (best-effort)
     try:
-        analyze_residuals(final_estimator, X_test, y_test, logger)
+        if config.get("analysis", {}).get("save_figures", True):
+            analyze_residuals(final_estimator, X_test, y_test, logger, out_dir=run_dir / "figures")
+            logger.info("Saved residual analysis figures to %s", run_dir / "figures")
     except Exception as e:
         logger.warning("Residual analysis failed (non-fatal): %s", e)
 
@@ -241,6 +247,9 @@ def main() -> None:
     }
 
     save_artifacts(model=final_estimator, metrics=metrics_payload, model_out=model_path, metrics_out=metrics_path, logger=logger)
+    save_config_copy(config, run_dir)
+    update_latest_run('artifacts/runs', run_dir.name)
+    add_link_to_code_version(run_dir)
     logger.info("Model evaluation metrics: %s", metrics)
 
 
