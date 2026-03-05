@@ -1,0 +1,11 @@
+{
+  "brand": "Ford",
+  "model": "Focus",
+  "year": 2018,
+  "mileage": 35000,
+  "transmission": "Manual",
+  "fuelType": "Petrol",
+  "tax": 150,
+  "mpg": 45.0,
+  "engineSize": 1.0
+}
