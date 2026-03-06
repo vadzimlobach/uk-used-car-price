@@ -1,5 +1,5 @@
 from typing import List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 RAW_FEATURES: List[str] = [
     "brand",
@@ -15,7 +15,7 @@ RAW_FEATURES: List[str] = [
 ]
 
 class CarFeatures(BaseModel):
-    
+    model_config = ConfigDict(extra="forbid")
     year: int = Field(..., ge=1950, le=2026, description="Year of manufacture")
     mileage: int = Field(..., ge=0, description="Mileage in miles")
     tax: float = Field(..., ge=0,description="Tax in pounds")
