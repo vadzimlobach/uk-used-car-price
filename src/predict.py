@@ -1,18 +1,32 @@
 import json
 import argparse
 from pathlib import Path
-
 import joblib
 import pandas as pd
 from pydantic import ValidationError
+from typing import Protocol, Sequence
 from src.schema import CarFeatures
 from src.preprocess import add_features
 from src.logging_config import setup_logging
 from src.train import load_config
 
+class SupportsPredict(Protocol):
+    def predict(self, X: pd.DataFrame) -> Sequence[float]: ...
+
 def load_json(path: Path) -> dict:
     with path.open('r', encoding='utf-8') as f:
         return json.load(f)
+
+def predict_price(model: SupportsPredict, features: CarFeatures, logger, config: dict) -> float:
+    """
+    Run preprocessing and prediction for a single car example.
+    """
+    X = pd.DataFrame([features.to_dict()])
+    X_pred = add_features(X, logger, config)
+
+    pred = model.predict(X_pred)[0]
+
+    return float(pred)
     
 def main() -> None:
     parser = argparse.ArgumentParser(description='Run inference for UK used car price prediction.')
@@ -36,14 +50,7 @@ def main() -> None:
         raise SystemExit(f"Input validation failed:\n{e}") from e
 
     model = joblib.load(args.model)
-    X = pd.DataFrame([features.to_dict()])
-    X_pred = add_features(X, logger, config['data'])
-    if X_pred.shape[0] != 1:
-        raise SystemExit(
-            "Input was rejected by preprocessing rules (row dropped). "
-            "Check year range, mileage >= 0, and mileage_per_year within allowed limits."
-        )
-    pred = model.predict(X_pred)[0]
+    pred = predict_price(model, features, logger, config)
 
     print(json.dumps({"predicted_price": float(pred)}, indent=2))
     
