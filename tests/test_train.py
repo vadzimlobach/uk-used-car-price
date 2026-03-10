@@ -68,7 +68,16 @@ def test_cross_validate_model_returns_expected_keys_fast():
         shuffle=True,
     )
 
-    for k in ["rmse_mean", "rmse_std", "mae_mean", "mae_std", "r2_mean", "r2_std", "n_splits", "log_target"]:
+    for k in [
+        "rmse_mean",
+        "rmse_std",
+        "mae_mean",
+        "mae_std",
+        "r2_mean",
+        "r2_std",
+        "n_splits",
+        "log_target",
+    ]:
         assert k in summary
 
     assert summary["rmse_mean"] >= 0

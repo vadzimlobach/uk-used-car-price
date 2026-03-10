@@ -1,23 +1,27 @@
 import argparse
 import json
-import joblib
-import yaml
-import pandas as pd
-import numpy as np
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
-from sklearn.model_selection import train_test_split, cross_validate, KFold
+import joblib
+import numpy as np
+import pandas as pd
+import yaml
+from sklearn.metrics import make_scorer, mean_absolute_error, r2_score, root_mean_squared_error
+from sklearn.model_selection import KFold, cross_validate, train_test_split
 from sklearn.pipeline import Pipeline
-from sklearn.metrics import r2_score, root_mean_squared_error, mean_absolute_error, make_scorer
 
+from src.analyze import analyze_residuals
 from src.data_io import read_data_from_file
 from src.logging_config import setup_logging
-from src.analyze import analyze_residuals
 from src.model_utils import build_model_pipeline, wrap_log_target
-from src.run_utils import create_run_dir, save_config_copy, update_latest_run, add_link_to_code_version
-from src.run_utils import create_run_dir, save_config_copy, update_latest_run, add_link_to_code_version
+from src.run_utils import (
+    add_link_to_code_version,
+    create_run_dir,
+    save_config_copy,
+    update_latest_run,
+)
 
 
 def load_config(config_path: Path) -> dict:
@@ -28,7 +32,9 @@ def load_config(config_path: Path) -> dict:
 # -------------------------
 # Data utils
 # -------------------------
-def train_test_split_data(in_path: Path, logger, random_state: int) -> tuple[pd.DataFrame, pd.DataFrame]:
+def train_test_split_data(
+    in_path: Path, logger, random_state: int
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     df = read_data_from_file(in_path, logger)
     train_df, test_df = train_test_split(df, test_size=0.2, random_state=random_state)
     return train_df, test_df
@@ -41,7 +47,9 @@ def set_X_y(
     target: str,
 ) -> tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series]:
     if target not in train_df.columns:
-        raise ValueError(f"Target column '{target}' not found. Available columns: {list(train_df.columns)}")
+        raise ValueError(
+            f"Target column '{target}' not found. Available columns: {list(train_df.columns)}"
+        )
 
     X_train = train_df.drop(columns=[target])
     y_train = train_df[target]
@@ -58,6 +66,7 @@ def train_model(base_model: Pipeline, X_train: pd.DataFrame, y_train: pd.Series,
     estimator.fit(X_train, y_train)
     return estimator
 
+
 # -------------------------
 # Evaluation utils
 # -------------------------
@@ -65,7 +74,9 @@ def rmse(y_true, y_pred) -> float:
     return root_mean_squared_error(y_true, y_pred)
 
 
-def evaluate_on_holdout(estimator: Any, X_test: pd.DataFrame, y_test: pd.Series) -> dict[str, float]:
+def evaluate_on_holdout(
+    estimator: Any, X_test: pd.DataFrame, y_test: pd.Series
+) -> dict[str, float]:
     y_hat = estimator.predict(X_test)
 
     # Safety: avoid negative predictions causing weird metrics interpretation
@@ -154,7 +165,9 @@ def save_artifacts(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Train a model to predict used car prices (config-driven).")
+    parser = argparse.ArgumentParser(
+        description="Train a model to predict used car prices (config-driven)."
+    )
     parser.add_argument(
         "--config",
         type=Path,
@@ -186,7 +199,9 @@ def main() -> None:
     logger.info("Run name: %s", run_name)
     logger.info("Starting training with input data from %s", input_path)
 
-    train_df, test_df = train_test_split_data(in_path=input_path, logger=logger, random_state=random_state)
+    train_df, test_df = train_test_split_data(
+        in_path=input_path, logger=logger, random_state=random_state
+    )
     X_train, y_train, X_test, y_test = set_X_y(train_df, test_df, target=target)
 
     # Build a fresh pipeline instance for CV and for final training.
@@ -208,7 +223,7 @@ def main() -> None:
     write_json(
         cv_summary_path,
         {
-            "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+            "timestamp_utc": datetime.now(UTC).isoformat(),
             "run_name": run_name,
             "model_type": model_type,
             "cv": cv_summary,
@@ -231,7 +246,7 @@ def main() -> None:
         logger.warning("Residual analysis failed (non-fatal): %s", e)
 
     metrics_payload: dict[str, Any] = {
-        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "timestamp_utc": datetime.now(UTC).isoformat(),
         "run_name": run_name,
         "data": {
             "input_path": str(input_path),
@@ -248,9 +263,15 @@ def main() -> None:
         "config": config,
     }
 
-    save_artifacts(model=final_estimator, metrics=metrics_payload, model_out=model_path, metrics_out=metrics_path, logger=logger)
+    save_artifacts(
+        model=final_estimator,
+        metrics=metrics_payload,
+        model_out=model_path,
+        metrics_out=metrics_path,
+        logger=logger,
+    )
     save_config_copy(config, run_dir)
-    update_latest_run(runs_base_dir, run_dir.name) 
+    update_latest_run(runs_base_dir, run_dir.name)
     add_link_to_code_version(run_dir)
     logger.info("Model evaluation metrics: %s", metrics)
 

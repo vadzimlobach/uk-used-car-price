@@ -1,15 +1,18 @@
 import json
+
 import pytest
 from pydantic import ValidationError
 from pytest import raises
-from pathlib import Path
-from src.schema import CarFeatures
-from src import predict
 
-class DummyModel():
+from src import predict
+from src.schema import CarFeatures
+
+
+class DummyModel:
     def predict(self, X):
         assert len(X) == 1
         return [12345.67]
+
 
 class AssertingModel:
     def predict(self, X):
@@ -20,16 +23,16 @@ class AssertingModel:
 
 
 data = {
-        "year": 2018,
-        "mileage": 30000,
-        "tax": 145,
-        "mpg": 55,
-        "engineSize": 2.0,
-        "brand": "ford",
-        "model": "focus",
-        "transmission": "manual",
-        "fuelType": "petrol",
-    }
+    "year": 2018,
+    "mileage": 30000,
+    "tax": 145,
+    "mpg": 55,
+    "engineSize": 2.0,
+    "brand": "ford",
+    "model": "focus",
+    "transmission": "manual",
+    "fuelType": "petrol",
+}
 
 input_data = {
     "year": 2018,
@@ -43,50 +46,54 @@ input_data = {
     "fuelType": "petrol",
 }
 
+
 def test_schema_valid_input():
     car_data = CarFeatures(**data)
     assert car_data.year == 2018
     assert car_data.mileage == 30000
-    assert car_data.transmission == 'manual'
+    assert car_data.transmission == "manual"
+
 
 def test_schema_missing_input_field():
     data = {
-        'year': 2018,
+        "year": 2018,
         "mileage": 30000,
         "tax": 145,
         "mpg": 45,
         "engineSize": 2.0,
         "brand": "ford",
         "model": "focus",
-        "transmission": "manual"
+        "transmission": "manual",
     }
 
     with raises(ValidationError):
         CarFeatures(**data)
 
+
 def test_schema_wrong_type():
     data = {
-        'year': 2018,
-        "mileage": 'thirty thousand',
+        "year": 2018,
+        "mileage": "thirty thousand",
         "tax": 145,
         "mpg": 45,
         "engineSize": 2.0,
         "brand": "ford",
         "model": "focus",
-        "transmission": "manual"
+        "transmission": "manual",
     }
     with raises(ValidationError):
         CarFeatures(**data)
 
+
 def test_schema_from_json_fixture():
-    with open('tests/fixtures/sample_input.json') as f:
+    with open("tests/fixtures/sample_input.json") as f:
         data = json.load(f)
 
     car_obj = CarFeatures(**data)
-    assert car_obj.brand.lower() == 'ford'
-    assert car_obj.model.lower() == 'focus'
-    assert car_obj.transmission.lower() == 'manual'
-    assert car_obj.fuelType.lower() == 'petrol'
+    assert car_obj.brand.lower() == "ford"
+    assert car_obj.model.lower() == "focus"
+    assert car_obj.transmission.lower() == "manual"
+    assert car_obj.fuelType.lower() == "petrol"
     assert car_obj.year == 2018
     assert car_obj.mileage == 35000
     assert car_obj.tax == 150
@@ -105,13 +112,13 @@ def test_schema_from_json_fixture():
         ("engineSize", -0.1),
     ],
 )
-
 def test_schema_numeric_boundaries(field, value):
-    
+
     data[field] = value
 
     with raises(ValidationError):
         CarFeatures(**data)
+
 
 def test_schema_rejects_extra_fields():
     data = {
@@ -129,6 +136,7 @@ def test_schema_rejects_extra_fields():
 
     with pytest.raises(ValidationError):
         CarFeatures(**data)
+
 
 def test_predict_main_happy_path(tmp_path, monkeypatch, capsys):
     input_path = tmp_path / "sample_input.json"
@@ -163,6 +171,7 @@ def test_predict_main_happy_path(tmp_path, monkeypatch, capsys):
     assert isinstance(payload["predicted_price"], float)
     assert payload["predicted_price"] == 12345.67
 
+
 def test_predict_main_wrong_type(tmp_path, monkeypatch):
     input_data = {
         "year": 2018,
@@ -195,6 +204,7 @@ def test_predict_main_wrong_type(tmp_path, monkeypatch):
 
     with pytest.raises(SystemExit):
         predict.main()
+
 
 def test_predict_passes_single_row_dataframe(tmp_path, monkeypatch, capsys):
     input_path = tmp_path / "sample_input.json"

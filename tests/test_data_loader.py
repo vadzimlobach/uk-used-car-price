@@ -1,32 +1,37 @@
 from __future__ import annotations
 
 from pathlib import Path
+
 import pandas as pd
 import pytest
 
-
 # Update this import to match your file/module name
 from src.data_loader import (
-    load_data,
-    combine_csv_files,
-    standardize_columns,
-    coalesce_columns,
-    basic_report,
     TARGET_COLS,
+    basic_report,
+    coalesce_columns,
+    combine_csv_files,
+    load_data,
+    standardize_columns,
 )
 
 
 class DummyLogger:
     """Minimal logger stub so we don't depend on logging configuration in unit tests."""
-    def info(self, *args, **kwargs): 
+
+    def info(self, *args, **kwargs):
         pass
-    def warning(self, *args, **kwargs): 
+
+    def warning(self, *args, **kwargs):
         pass
-    def error(self, *args, **kwargs): 
+
+    def error(self, *args, **kwargs):
         pass
-    def debug(self, *args, **kwargs): 
+
+    def debug(self, *args, **kwargs):
         pass
-    def exception(self, *args, **kwargs): 
+
+    def exception(self, *args, **kwargs):
         pass
 
 
@@ -43,6 +48,7 @@ def write_csv(path: Path, df: pd.DataFrame) -> None:
 # -----------------------
 # load_data() tests
 # -----------------------
+
 
 def test_load_data_file_not_found(tmp_path: Path, logger):
     missing = tmp_path / "nope.csv"
@@ -78,6 +84,7 @@ def test_load_data_success(tmp_path: Path, logger):
 # coalesce_columns() tests
 # -----------------------
 
+
 def test_coalesce_columns_secondary_missing_no_change(logger):
     df = pd.DataFrame({"mileage": [1, None, 3]})
     out = coalesce_columns(df.copy(), "mileage", "mileage2", logger)
@@ -101,19 +108,22 @@ def test_coalesce_columns_primary_missing_created(logger):
 # standardize_columns() tests
 # -----------------------
 
+
 def test_standardize_columns_renames_variants_and_keeps_target_schema(logger):
-    df = pd.DataFrame({
-        "model": ["a"],
-        "year": [2019],
-        "price": [1000],
-        "transmission": ["Manual"],
-        "mileage": [50000],
-        "fuel type": ["Petrol"],         # variant
-        "tax(£)": [150],                 # variant
-        "mpg": [55.0],
-        "engine size": [1.6],            # variant
-        "reference": ["XYZ"],            # extra should be dropped
-    })
+    df = pd.DataFrame(
+        {
+            "model": ["a"],
+            "year": [2019],
+            "price": [1000],
+            "transmission": ["Manual"],
+            "mileage": [50000],
+            "fuel type": ["Petrol"],  # variant
+            "tax(£)": [150],  # variant
+            "mpg": [55.0],
+            "engine size": [1.6],  # variant
+            "reference": ["XYZ"],  # extra should be dropped
+        }
+    )
 
     out = standardize_columns(df, logger)
 
@@ -124,18 +134,20 @@ def test_standardize_columns_renames_variants_and_keeps_target_schema(logger):
 
 
 def test_standardize_columns_coalesces_secondary_fields(logger):
-    df = pd.DataFrame({
-        "model": ["a"],
-        "year": [2019],
-        "price": [1000],
-        "transmission": ["Manual"],
-        "mileage": [None],
-        "mileage2": [12345],
-        "fuelType": [None],
-        "fuelType2": ["Diesel"],
-        "engineSize": [None],
-        "engineSize2": [2.0],
-    })
+    df = pd.DataFrame(
+        {
+            "model": ["a"],
+            "year": [2019],
+            "price": [1000],
+            "transmission": ["Manual"],
+            "mileage": [None],
+            "mileage2": [12345],
+            "fuelType": [None],
+            "fuelType2": ["Diesel"],
+            "engineSize": [None],
+            "engineSize2": [2.0],
+        }
+    )
 
     out = standardize_columns(df, logger)
     assert out.loc[0, "mileage"] == 12345
@@ -158,6 +170,7 @@ def test_standardize_columns_adds_missing_columns_as_na(logger):
 # -----------------------
 # combine_csv_files() tests
 # -----------------------
+
 
 def test_combine_csv_files_directory_missing(tmp_path: Path, logger):
     with pytest.raises(FileNotFoundError):
@@ -182,29 +195,33 @@ def test_combine_csv_files_success_and_standardizes(tmp_path: Path, logger):
     d = tmp_path / "data"
     d.mkdir()
 
-    df1 = pd.DataFrame({
-        "model": ["a"],
-        "year": [2019],
-        "price": [1000],
-        "transmission": ["Manual"],
-        "mileage": [50000],
-        "fuelType": ["Petrol"],
-        "tax": [150],
-        "mpg": [55.0],
-        "engineSize": [1.6],
-    })
+    df1 = pd.DataFrame(
+        {
+            "model": ["a"],
+            "year": [2019],
+            "price": [1000],
+            "transmission": ["Manual"],
+            "mileage": [50000],
+            "fuelType": ["Petrol"],
+            "tax": [150],
+            "mpg": [55.0],
+            "engineSize": [1.6],
+        }
+    )
 
-    df2 = pd.DataFrame({
-        "model": ["b"],
-        "year": [2018],
-        "price": [900],
-        "transmission": ["Auto"],
-        "mileage": [None],
-        "mileage2": [40000],
-        "fuel type": ["Diesel"],
-        "engine size": [2.0],
-        "reference": ["X"],
-    })
+    df2 = pd.DataFrame(
+        {
+            "model": ["b"],
+            "year": [2018],
+            "price": [900],
+            "transmission": ["Auto"],
+            "mileage": [None],
+            "mileage2": [40000],
+            "fuel type": ["Diesel"],
+            "engine size": [2.0],
+            "reference": ["X"],
+        }
+    )
 
     write_csv(d / "a.csv", df1)
     write_csv(d / "b.csv", df2)
@@ -214,44 +231,51 @@ def test_combine_csv_files_success_and_standardizes(tmp_path: Path, logger):
     assert list(out.columns) == TARGET_COLS
     assert out.shape[0] == 2
     assert out.loc[out["model"] == "b", "mileage"].iloc[0] == 40000
-    
+
+
 def test_combine_csv_files_exclude_combined_csv(tmp_path: Path, logger):
     d = tmp_path / "data"
     d.mkdir()
 
-    df1 = pd.DataFrame({
-        "model": ["a4", "a3"],
-        "year": [2019, 2018],
-        "price": [1000, 5000],
-        "transmission": ["Manual", "Manual"],
-        "mileage": [50000, 35000],
-        "fuelType": ["Petrol", "Diesel"],
-        "tax": [150, 200],
-        "mpg": [55.0, 45.0],
-        "engineSize": [1.6, 2.0],
-    })
+    df1 = pd.DataFrame(
+        {
+            "model": ["a4", "a3"],
+            "year": [2019, 2018],
+            "price": [1000, 5000],
+            "transmission": ["Manual", "Manual"],
+            "mileage": [50000, 35000],
+            "fuelType": ["Petrol", "Diesel"],
+            "tax": [150, 200],
+            "mpg": [55.0, 45.0],
+            "engineSize": [1.6, 2.0],
+        }
+    )
 
-    df2 = pd.DataFrame({
-        "model": ["3 series", "3 series", "X5"],
-        "year": [2018, 2018, 2019],
-        "price": [900, 5700, 15000],
-        "transmission": ["Auto", "Auto", "Auto"],
-        "mileage2": [40000, 45000, 55000],
-        "fuel type": ["Diesel", "Diesel", "Petrol"],
-        "engine size": [2.0, 2.0, 1.8],
-    })
+    df2 = pd.DataFrame(
+        {
+            "model": ["3 series", "3 series", "X5"],
+            "year": [2018, 2018, 2019],
+            "price": [900, 5700, 15000],
+            "transmission": ["Auto", "Auto", "Auto"],
+            "mileage2": [40000, 45000, 55000],
+            "fuel type": ["Diesel", "Diesel", "Petrol"],
+            "engine size": [2.0, 2.0, 1.8],
+        }
+    )
 
-    df3 = pd.DataFrame({
-        "model": ["Golf", "Tiguan", "Touareg"],
-        "year": [2019, 2018, 2017],
-        "price": [1000, 5000, 8000],
-        "transmission": ["Manual", "Manual", "Manual"],
-        "mileage": [50000, 35000, 45000],
-        "fuelType": ["Petrol", "Diesel", "Diesel"],
-        "tax": [150, 200, 250],
-        "mpg": [55.0, 45.0, 40.0],
-        "engineSize": [1.6, 2.0, 1.8],
-    })
+    df3 = pd.DataFrame(
+        {
+            "model": ["Golf", "Tiguan", "Touareg"],
+            "year": [2019, 2018, 2017],
+            "price": [1000, 5000, 8000],
+            "transmission": ["Manual", "Manual", "Manual"],
+            "mileage": [50000, 35000, 45000],
+            "fuelType": ["Petrol", "Diesel", "Diesel"],
+            "tax": [150, 200, 250],
+            "mpg": [55.0, 45.0, 40.0],
+            "engineSize": [1.6, 2.0, 1.8],
+        }
+    )
 
     write_csv(d / "a.csv", df1)
     write_csv(d / "b.csv", df2)
@@ -260,7 +284,9 @@ def test_combine_csv_files_exclude_combined_csv(tmp_path: Path, logger):
     out = combine_csv_files(d, logger)
 
     assert list(out.columns) == TARGET_COLS
-    assert out.shape[0] == 5  # 2 from df1, 3 from df2 (mileage filled from mileage2), none from combined.csv
+    assert (
+        out.shape[0] == 5
+    )  # 2 from df1, 3 from df2 (mileage filled from mileage2), none from combined.csv
     assert out.loc[out["model"] == "3 series", "mileage"].tolist() == [40000, 45000]
     assert out.loc[out["model"] == "a4", "mileage"].tolist() == [50000]
 
@@ -268,6 +294,7 @@ def test_combine_csv_files_exclude_combined_csv(tmp_path: Path, logger):
 # -----------------------
 # basic_report() tests
 # -----------------------
+
 
 def test_basic_report_raises_if_target_missing(logger):
     df = pd.DataFrame({"x": [1, 2]})

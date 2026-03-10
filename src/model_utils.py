@@ -1,12 +1,12 @@
-import pandas as pd
-import numpy as np
 from typing import Any
 
-from sklearn.pipeline import Pipeline
+import numpy as np
+import pandas as pd
 from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
 from sklearn.linear_model import LinearRegression
-from sklearn.ensemble import RandomForestRegressor, HistGradientBoostingRegressor
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 
 def build_model_pipeline(X_train: pd.DataFrame, config: dict) -> Pipeline:
@@ -24,7 +24,9 @@ def build_model_pipeline(X_train: pd.DataFrame, config: dict) -> Pipeline:
 
 def build_preprocessor(X_train: pd.DataFrame) -> ColumnTransformer:
     numeric_features = X_train.select_dtypes(include=["number"]).columns.tolist()
-    categorical_features = X_train.select_dtypes(include=["object", "string", "category"]).columns.tolist()
+    categorical_features = X_train.select_dtypes(
+        include=["object", "string", "category"]
+    ).columns.tolist()
 
     numeric_transformer = StandardScaler()
     categorical_transformer = OneHotEncoder(handle_unknown="ignore", sparse_output=False)

@@ -1,0 +1,28 @@
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+exclude = [
+  ".venv",
+  ".pytest_cache",
+  ".ruff_cache",
+  "artifacts",
+  "data",
+]
+
+[tool.ruff.lint]
+select = [
+  "E",
+  "F",
+  "I",
+  "B",
+  "UP",
+]
+ignore = [
+  "E501",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+docstring-code-format = true
