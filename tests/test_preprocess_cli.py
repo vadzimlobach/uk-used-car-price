@@ -3,6 +3,7 @@ from __future__ import annotations
 import subprocess
 import sys
 from pathlib import Path
+
 import pandas as pd
 
 
@@ -11,21 +12,29 @@ def test_preprocess_cli_creates_output_csv(tmp_path: Path):
     in_path = tmp_path / "in.csv"
     out_path = tmp_path / "out.csv"
 
-    df = pd.DataFrame({
-        "price": ["£1000", "£2000", None, "-50"],
-        "year": [2020, 2019, 2018, 2017],          # <-- add year
-        "mileage": [10_000, None, 30_000, 40_000],
-        "transmission": ["Manual", None, "Auto", "Manual"],
-    })
+    df = pd.DataFrame(
+        {
+            "price": ["£1000", "£2000", None, "-50"],
+            "year": [2020, 2019, 2018, 2017],  # <-- add year
+            "mileage": [10_000, None, 30_000, 40_000],
+            "transmission": ["Manual", None, "Auto", "Manual"],
+        }
+    )
     df.to_csv(in_path, index=False)
 
     # Act: run CLI module
     cmd = [
-        sys.executable, "-m", "src.preprocess",
-        "--in", str(in_path),
-        "--out", str(out_path),
-        "--target", "price",
-        "--log-level", "ERROR",
+        sys.executable,
+        "-m",
+        "src.preprocess",
+        "--in",
+        str(in_path),
+        "--out",
+        str(out_path),
+        "--target",
+        "price",
+        "--log-level",
+        "ERROR",
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
 

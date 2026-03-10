@@ -159,13 +159,27 @@ This project is structured as an MLOps portfolio piece and includes:
 
  - Structured logging
 
+## Code Quality
+
+This project uses **Ruff** for linting and formatting, and **pre-commit** for local automated checks.
+
+### Install hooks
+
+```bash
+pre-commit install
+```
+
+### Common commands
+```bash
+make lint
+make format
+make test
+make check
+make train
+make predict
+```
+
 ### Planned upgrades:
-
- - Config-driven training (YAML)
-
- - Versioned training runs
-
- - Inference CLI
 
  - Docker containerization
 
@@ -191,12 +205,8 @@ This project demonstrates transition from Test Automation Engineer → MLOps Eng
 
 ### 📌 Next Milestones
 
- 1. Config-based training
+ 1. Dockerized inference
 
- 2. Artifact versioning
+ 2. CI pipeline with lint + tests
 
- 3. Dockerized inference
-
- 4. CI pipeline with lint + tests
-
- 5. Cloud deployment (AWS recommended first)
+ 3. Cloud deployment (AWS recommended first)

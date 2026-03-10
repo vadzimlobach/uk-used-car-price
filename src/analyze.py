@@ -1,8 +1,10 @@
+from pathlib import Path
+
+import matplotlib
 import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
-from pathlib import Path
-import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
@@ -88,6 +90,7 @@ def analyze_residuals(
     ax.set_title("Residual Distribution")
     _save_or_close(fig, "distribution")
 
+
 def get_feature_importance(model: Pipeline) -> pd.DataFrame:
     """
     Extract feature importance from RandomForest inside pipeline.
@@ -105,9 +108,8 @@ def get_feature_importance(model: Pipeline) -> pd.DataFrame:
 
     importances = regressor.feature_importances_
 
-    df_importance = pd.DataFrame({
-        "feature": feature_names,
-        "importance": importances
-    }).sort_values("importance", ascending=False)
+    df_importance = pd.DataFrame({"feature": feature_names, "importance": importances}).sort_values(
+        "importance", ascending=False
+    )
 
     return df_importance

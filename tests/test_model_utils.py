@@ -1,15 +1,14 @@
 import numpy as np
 import pandas as pd
 import pytest
-
 from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
-from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.pipeline import Pipeline
 
 from src.model_utils import (
+    build_model_pipeline,
     build_preprocessor,
     build_regressor,
-    build_model_pipeline,
     wrap_log_target,
 )
 
@@ -42,12 +41,6 @@ def test_build_preprocessor_returns_column_transformer():
     assert any("year" in f for f in feature_names)
     assert any("make" in f for f in feature_names)
 
-
-from typing import cast
-from sklearn.ensemble import RandomForestRegressor
-
-
-from sklearn.ensemble import RandomForestRegressor
 
 def test_build_regressor_rf_applies_params_and_random_state():
     model_cfg = {"params": {"n_estimators": 10, "max_depth": 3}}

@@ -1,17 +1,24 @@
 from pathlib import Path
+
 import pandas as pd
 import pytest
+
 from src.preprocess import read_data_from_file, save_preprocessed_data
+
 
 class DummyLogger:
     def info(self, *args, **kwargs):
         pass
+
     def warning(self, *args, **kwargs):
         pass
+
     def error(self, *args, **kwargs):
         pass
+
     def debug(self, *args, **kwargs):
         pass
+
     def exception(self, *args, **kwargs):
         pass
 
@@ -29,10 +36,12 @@ def logger():
 def test_read_data_from_file_success(tmp_path: Path, logger):
     # Arrange
     input_path = tmp_path / "input.csv"
-    df = pd.DataFrame({
-        "price": [1000, 2000],
-        "model": ["a", "b"],
-    })
+    df = pd.DataFrame(
+        {
+            "price": [1000, 2000],
+            "model": ["a", "b"],
+        }
+    )
     df.to_csv(input_path, index=False)
 
     # Act
@@ -47,12 +56,15 @@ def test_read_data_from_file_success(tmp_path: Path, logger):
 # save_preprocessed_data tests
 # -----------------------
 
+
 def test_save_preprocessed_data_creates_file(tmp_path: Path, logger):
     # Arrange
-    df = pd.DataFrame({
-        "price": [1000, 2000],
-        "model": ["a", "b"],
-    })
+    df = pd.DataFrame(
+        {
+            "price": [1000, 2000],
+            "model": ["a", "b"],
+        }
+    )
     output_path = tmp_path / "nested" / "folder" / "output.csv"
 
     # Act

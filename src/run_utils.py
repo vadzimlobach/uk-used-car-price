@@ -1,7 +1,9 @@
-import yaml
 import subprocess
 from datetime import datetime
 from pathlib import Path
+
+import yaml
+
 
 def create_run_dir(base_dir: str, run_name: str) -> Path:
     """
@@ -31,10 +33,12 @@ def create_run_dir(base_dir: str, run_name: str) -> Path:
 
     raise RuntimeError(f"Could not create a unique run dir for stem: {stem}")
 
+
 def save_config_copy(config: dict, run_dir: Path) -> None:
     config_path = run_dir / "config.yaml"
-    with open(config_path, 'w') as f:
+    with open(config_path, "w") as f:
         yaml.safe_dump(config, f)
+
 
 def update_latest_run(base_dir: str, run_id: str) -> None:
     base = Path(base_dir)
@@ -43,6 +47,6 @@ def update_latest_run(base_dir: str, run_id: str) -> None:
     latest_file.write_text(run_id)
 
 
-def add_link_to_code_version(run_dir:Path) -> None:
+def add_link_to_code_version(run_dir: Path) -> None:
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip()
     (run_dir / "git_commit.txt").write_text(commit)
