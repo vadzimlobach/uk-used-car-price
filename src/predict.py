@@ -23,6 +23,21 @@ def load_json(path: Path) -> dict:
         return json.load(f)
 
 
+def resolve_latest_model_path() -> Path:
+    latest_file = Path("artifacts/runs/latest_run.txt")
+
+    if not latest_file.exists:
+        raise SystemExit("latest_run.txt not found. Train model first.")
+
+    run_id = latest_file.read_text().strip()
+    model_path = Path("artifacts/runs") / run_id / "model.joblib"
+
+    if not model_path.exists():
+        raise SystemExit(f"Model not found at {model_path}")
+
+    return model_path
+
+
 def predict_price(model: SupportsPredict, features: CarFeatures, logger, config: dict) -> float:
     """
     Run preprocessing and prediction for a single car example.
@@ -37,7 +52,12 @@ def predict_price(model: SupportsPredict, features: CarFeatures, logger, config:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run inference for UK used car price prediction.")
-    parser.add_argument("--model", type=Path, required=True, help="Path to model.joblib")
+    parser.add_argument(
+        "--model",
+        type=Path,
+        required=False,
+        help="Path to model.joblib (optional — latest model used if not provided)",
+    )
     parser.add_argument("--input", type=Path, required=True, help="Path to input JSON")
     parser.add_argument(
         "--config",
@@ -56,7 +76,8 @@ def main() -> None:
     except ValidationError as e:
         raise SystemExit(f"Input validation failed:\n{e}") from e
 
-    model = joblib.load(args.model)
+    model_path = args.model if args.model else resolve_latest_model_path()
+    model = joblib.load(model_path)
     pred = predict_price(model, features, logger, config)
 
     print(json.dumps({"predicted_price": float(pred)}, indent=2))
