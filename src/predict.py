@@ -28,7 +28,7 @@ def predict_price(model: SupportsPredict, features: CarFeatures, logger, config:
     Run preprocessing and prediction for a single car example.
     """
     X = pd.DataFrame([features.to_dict()])
-    X_pred = add_features(X, logger, config)
+    X_pred = add_features(X, logger, config["data"])
 
     pred = model.predict(X_pred)[0]
 
