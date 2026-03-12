@@ -11,6 +11,47 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
+### 🐳 Run inference via Docker
+
+You can run model inference inside a Docker container without installing Python dependencies locally.
+
+1. Build Docker image
+```bash 
+docker build -t car-price .
+```
+2. Train a model (required once)
+
+This step creates a new run directory and updates the pointer file:
+
+```
+artifacts/runs/latest_run.txt
+```
+Example:
+
+```bash
+make train
+```
+3. Run inference
+
+The container automatically resolves the latest trained model if --model is not provided.
+```bash
+docker run --rm \
+  -v "$(pwd)/artifacts:/app/artifacts" \
+  -v "$(pwd)/tests/fixtures:/app/fixtures" \
+  car-price \
+  --input /app/fixtures/sample_input.json
+```
+
+Optional: override model via environment variable
+```bash
+docker run --rm \
+  -e MODEL_PATH=/app/artifacts/runs/<run_id>/model.joblib \
+  -v "$(pwd)/artifacts:/app/artifacts" \
+  -v "$(pwd)/tests/fixtures:/app/fixtures" \
+  car-price \
+  --input /app/fixtures/sample_input.json
+```
+
 ### 🏗 Current Project Structure
 ```bash 
 .
@@ -90,9 +131,9 @@ python -m src.train \
 
 *Outputs:*
 
- - Trained model → *artifacts/models/*
+ - Trained model → *artifacts/runs/<run_id>/model.joblib*
 
- - Evaluation metrics → *artifacts/reports/*
+ - Evaluation metrics → *artifacts/runs/<run_id>/metrics.json*
 
 ## 🔒 Inference Schema (Single Source of Truth)
 
