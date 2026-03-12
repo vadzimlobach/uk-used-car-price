@@ -1,10 +1,12 @@
 import json
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 from pytest import raises
 
 from src import predict
+from src.predict import resolve_latest_model_path, resolve_model_path
 from src.schema import CarFeatures
 
 
@@ -45,6 +47,117 @@ input_data = {
     "transmission": "manual",
     "fuelType": "petrol",
 }
+
+
+def test_resolve_latest_model_path_returns_model_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    runs_dir = tmp_path / "artifacts" / "runs"
+    run_dir = runs_dir / "20260312_081000_rf_baseline"
+    run_dir.mkdir(parents=True)
+
+    latest_run_file = runs_dir / "latest_run.txt"
+    latest_run_file.write_text("20260312_081000_rf_baseline", encoding="utf-8")
+
+    model_file = run_dir / "model.joblib"
+    model_file.write_text("dummy-model", encoding="utf-8")
+
+    monkeypatch.chdir(tmp_path)
+
+    resolved = resolve_latest_model_path()
+
+    assert resolved.resolve() == model_file.resolve()
+
+
+def test_resolve_latest_model_path_raises_if_latest_run_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    with pytest.raises(SystemExit, match="latest_run.txt not found"):
+        resolve_latest_model_path()
+
+
+def test_resolve_latest_model_path_raises_if_model_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    runs_dir = tmp_path / "artifacts" / "runs"
+    runs_dir.mkdir(parents=True)
+
+    latest_run_file = runs_dir / "latest_run.txt"
+    latest_run_file.write_text("20260312_081000_rf_baseline", encoding="utf-8")
+
+    monkeypatch.chdir(tmp_path)
+
+    with pytest.raises(SystemExit, match="Model not found"):
+        resolve_latest_model_path()
+
+
+def test_resolve_model_path_prefers_cli_argument(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cli_model = tmp_path / "cli_model.joblib"
+    cli_model.write_text("dummy-model", encoding="utf-8")
+
+    env_model = tmp_path / "env_model.joblib"
+    env_model.write_text("dummy-model", encoding="utf-8")
+
+    monkeypatch.setenv("MODEL_PATH", str(env_model))
+
+    resolved = resolve_model_path(cli_model)
+
+    assert resolved == cli_model
+
+
+def test_resolve_model_path_uses_env_when_cli_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    env_model = tmp_path / "env_model.joblib"
+    env_model.write_text("dummy-model", encoding="utf-8")
+
+    monkeypatch.setenv("MODEL_PATH", str(env_model))
+
+    resolved = resolve_model_path(None)
+
+    assert resolved == env_model
+
+
+def test_resolve_model_path_falls_back_to_latest_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    runs_dir = tmp_path / "artifacts" / "runs"
+    run_dir = runs_dir / "20260312_081000_rf_baseline"
+    run_dir.mkdir(parents=True)
+
+    latest_run_file = runs_dir / "latest_run.txt"
+    latest_run_file.write_text("20260312_081000_rf_baseline", encoding="utf-8")
+
+    model_file = run_dir / "model.joblib"
+    model_file.write_text("dummy-model", encoding="utf-8")
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("MODEL_PATH", raising=False)
+
+    resolved = resolve_model_path(None)
+
+    assert resolved.resolve() == model_file.resolve()
+
+
+def test_resolve_model_path_raises_if_env_model_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    missing_model = tmp_path / "missing_model.joblib"
+    monkeypatch.setenv("MODEL_PATH", str(missing_model))
+
+    with pytest.raises(SystemExit, match="MODEL_PATH is set but file not found"):
+        resolve_model_path(None)
+
+
+def test_resolve_model_path_raises_if_cli_model_missing(tmp_path: Path) -> None:
+    missing_model = tmp_path / "missing_model.joblib"
+
+    with pytest.raises(SystemExit, match="Model not found"):
+        resolve_model_path(missing_model)
 
 
 def test_schema_valid_input():
@@ -139,6 +252,8 @@ def test_schema_rejects_extra_fields():
 
 
 def test_predict_main_happy_path(tmp_path, monkeypatch, capsys):
+    model_path = tmp_path / "model.joblib"
+    model_path.write_text("dummy-model", encoding="utf-8")
     input_path = tmp_path / "sample_input.json"
     input_path.write_text(json.dumps(input_data), encoding="utf-8")
 
@@ -154,7 +269,7 @@ def test_predict_main_happy_path(tmp_path, monkeypatch, capsys):
         [
             "predict",
             "--model",
-            "artifacts/runs/fake/model.joblib",
+            str(model_path),
             "--input",
             str(input_path),
             "--config",
@@ -207,6 +322,9 @@ def test_predict_main_wrong_type(tmp_path, monkeypatch):
 
 
 def test_predict_passes_single_row_dataframe(tmp_path, monkeypatch, capsys):
+    model_path = tmp_path / "fake.joblib"
+    model_path.write_text("dummy-model", encoding="utf-8")
+
     input_path = tmp_path / "sample_input.json"
     input_path.write_text(json.dumps(input_data), encoding="utf-8")
 
@@ -221,7 +339,7 @@ def test_predict_passes_single_row_dataframe(tmp_path, monkeypatch, capsys):
         [
             "predict",
             "--model",
-            "fake.joblib",
+            str(model_path),
             "--input",
             str(input_path),
             "--config",
