@@ -63,7 +63,7 @@ def add_features(df: pd.DataFrame, logger, config: dict) -> pd.DataFrame:
     df = df.copy()  # Avoid SettingWithCopyWarning
     df["mileage_per_year"] = df["mileage"] / age_for_division
     df = drop_rows_not_in_range(df, "mileage_per_year", 0, config["max_mileage_per_year"], logger)
-    logger.info("Dropped %s rows due to milage rules", before_rows - df.shape[0])
+    logger.info("Dropped %s rows due to mileage rules", before_rows - df.shape[0])
     logger.info(
         "min mileage_per_year: %s, max mileage_per_year: %s",
         df["mileage_per_year"].min(),

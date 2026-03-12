@@ -1,5 +1,8 @@
 .PHONY: test lint format check train predict precommit-install precommit-run
 
+IMAGE_NAME=car-price
+INPUT_PATH=/app/fixtures/sample_input.json
+
 test:
 	pytest -q
 
@@ -24,3 +27,21 @@ precommit-install:
 
 precommit-run:
 	pre-commit run --all-files
+
+docker-build:
+	docker build -t $(IMAGE_NAME) .
+
+docker-run:
+	docker run --rm \
+		-v "$(PWD)/artifacts:/app/artifacts" \
+		-v "$(PWD)/tests/fixtures:/app/fixtures" \
+		$(IMAGE_NAME) \
+		--input $(INPUT_PATH)
+
+docker-run-env:
+	docker run --rm \
+		-e MODEL_PATH=/app/artifacts/runs/20260305_115316_rf_baseline/model.joblib \
+		-v "$(PWD)/artifacts:/app/artifacts" \
+		-v "$(PWD)/tests/fixtures:/app/fixtures" \
+		$(IMAGE_NAME) \
+		--input $(INPUT_PATH)
