@@ -4,6 +4,8 @@ Production-oriented machine learning project focused on **clean architecture, re
 
 The project trains and evaluates models to predict UK used car prices from structured tabular data and is being incrementally upgraded toward a fully containerized, CI/CD-driven, cloud-deployable service.
 
+[![CI](https://github.com/vadzimlobach/uk-used-car-price/actions/workflows/ci.yml/badge.svg)](https://github.com/vadzimlobach/uk-used-car-price/actions/workflows/ci.yml)
+
 ## 🚀 Quick Start
 ### 1️⃣ Setup
 ```bash 
@@ -272,3 +274,5 @@ This project demonstrates transition from Test Automation Engineer → MLOps Eng
  2. FastApi
 
  3. Cloud deployment (AWS recommended first)
+
+[def]: https://github.com/vadzimlobach/<uk-used-car-price/actions/workflows/ci.yml/badge.svg
