@@ -12,6 +12,9 @@ lint:
 format:
 	ruff format .
 
+format-check:
+	ruff format --check .
+
 check:
 	ruff check .
 	pytest -q
