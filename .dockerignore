@@ -20,5 +20,4 @@ tests/
 artifacts/runs/*
 artifacts/*.joblib
 
-README.md
 pytest.ini
