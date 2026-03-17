@@ -84,6 +84,14 @@ jobs:
         - name: Build Docker image
           run: make docker-build
 
+        - name: Preprocess fixture dataset
+          run: |
+            python -m src.preprocess \
+              --in tests/fixtures/raw_small.csv \
+              --out data/processed/processed.csv \
+              --target price
+
+
         - name: Train model for docker smoke test
           run: |
             python -m pip install --upgrade pip
