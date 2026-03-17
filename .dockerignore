@@ -13,8 +13,12 @@ __pycache__/
 
 data/raw/
 data/processed/
+scripts/
 
 tests/
 
 artifacts/runs/*
 artifacts/*.joblib
+
+README.md
+pytest.ini
