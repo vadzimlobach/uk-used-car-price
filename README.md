@@ -1,18 +1,48 @@
 # UK Used Car Price Predictor
 
-Production-oriented machine learning project focused on **clean architecture, reproducibility, testing, and MLOps best practices**.
-
-The project trains and evaluates models to predict UK used car prices from structured tabular data and is being incrementally upgraded toward a fully containerized, CI/CD-driven, cloud-deployable service.
+Production-oriented tabular ML pipeline demonstrating reproducible training,
+artifact versioning, containerised inference and CI validation.
 
 [![CI](https://github.com/vadzimlobach/uk-used-car-price/actions/workflows/ci.yml/badge.svg)](https://github.com/vadzimlobach/uk-used-car-price/actions/workflows/ci.yml)
 
-## 🚀 Quick Start
-### 1️⃣ Setup
-```bash 
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
+## 🧩 Pipeline Overview
+
+This project implements an end-to-end tabular ML pipeline:
+
+1. Raw data preprocessing and validation  
+2. Feature engineering and dataset cleaning  
+3. Config-driven model training with cross-validation  
+4. Artifact versioning for reproducible experiments  
+5. Containerised inference runtime  
+6. CI pipeline validation (lint → test → Docker smoke test)
+
+Training artifacts are stored under:
+
+```artifacts/runs/<run_id>/```
+
+Each run includes model, metrics, config snapshot and commit hash for traceability.
+
+## 🧱 Tech Stack
+
+- Python 3.11
+- scikit-learn
+- pandas / NumPy
+- Pydantic (input validation)
+- Docker (containerised inference)
+- GitHub Actions (CI pipeline)
+- Ruff + pytest (code quality)
+
+## 🏗 Architecture
+
+Raw CSV → Preprocess → Train (CV) → Artifact store → Docker runtime → CI smoke test 
+
+
+## 🐳 Containerised Inference
+
+Inference runs inside a lightweight Docker container that loads the latest trained model artifact.
+
+This allows predictions without installing Python dependencies locally.
+
 ### 🐳 Run inference via Docker
 
 You can run model inference inside a Docker container without installing Python dependencies locally.
@@ -53,6 +83,30 @@ docker run --rm \
   car-price \
   --input /app/fixtures/sample_input.json
 ```
+Example output:
+
+```json
+{"predicted_price": 11234.5}
+```
+
+## 🚀 Quick Start
+### 1️⃣ Setup
+```bash 
+python -m venv .venv
+source .venv/bin/activate
+pip install .
+```
+
+## ⚙️ CI Pipeline
+
+GitHub Actions validates every push and pull request:
+
+- code formatting and linting
+- unit and CLI tests
+- Docker image build
+- end-to-end inference smoke test using a synthetic dataset
+
+This ensures the container runtime is always functional and reproducible.
 
 ### 🏗 Current Project Structure
 ```bash 
@@ -132,26 +186,15 @@ python -m src.preprocess \
   --out data/processed/processed.csv \
   --target price
   ```
-### 🤖 Model Training
 
-**Currently supported models include:**
+## 🤖 Model Training
 
- - Baseline models
+Training is fully config-driven.
 
- - Random Forest
+Example:
 
- - Gradient Boosting
-
- - Log-target variants
-
-**Example training run:**
 ```bash
-python -m src.train \
-  --in data/processed/processed.csv \
-  --model-out artifacts/models/rf.joblib \
-  --metrics-out artifacts/reports/rf_metrics.json \
-  --model rf \
-  --run-name baseline_rf
+python -m src.train --config configs/train.yaml
 ```
 
 *Outputs:*
@@ -159,6 +202,15 @@ python -m src.train \
  - Trained model → *artifacts/runs/<run_id>/model.joblib*
 
  - Evaluation metrics → *artifacts/runs/<run_id>/metrics.json*
+
+Each training run is fully traceable via stored configuration and git commit hash.
+Supports Random Forest and Gradient Boosting variants.
+
+## 📦 Dataset
+
+The original dataset is not included in the repository.
+
+CI uses a small synthetic dataset to validate preprocessing and training steps.
 
 ## 🔒 Inference Schema (Single Source of Truth)
 
@@ -245,13 +297,14 @@ make train
 make predict
 ```
 
-### Planned upgrades:
+## 🚧 Future Improvements
 
- - GitHub Actions CI
-
- - FastAPI service
-
- - Cloud deployment (AWS / Azure)
+- Publish Docker image to container registry (GHCR)
+- Wrap inference as FastAPI service
+- Deploy service to AWS / Azure
+- Add prediction metadata endpoint
+- Implement basic data drift checks
+- Add model monitoring hooks
 
 ## 🎯 Project Goal
 
@@ -269,10 +322,8 @@ This project demonstrates transition from Test Automation Engineer → MLOps Eng
 
 ### 📌 Next Milestones
 
- 1. CI pipeline with lint + tests
+ 1. FastApi
 
- 2. FastApi
-
- 3. Cloud deployment (AWS recommended first)
+ 2. Cloud deployment (AWS recommended first)
 
 [def]: https://github.com/vadzimlobach/<uk-used-car-price/actions/workflows/ci.yml/badge.svg
