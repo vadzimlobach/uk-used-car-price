@@ -6,10 +6,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
+COPY pyproject.toml README.md ./
 COPY src/ src/
 COPY configs/ configs/
+
+RUN pip install .
 
 ENTRYPOINT ["python", "-m", "src.predict"]

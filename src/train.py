@@ -7,12 +7,12 @@ from typing import Any
 import joblib
 import numpy as np
 import pandas as pd
-import yaml
 from sklearn.metrics import make_scorer, mean_absolute_error, r2_score, root_mean_squared_error
 from sklearn.model_selection import KFold, cross_validate, train_test_split
 from sklearn.pipeline import Pipeline
 
 from src.analyze import analyze_residuals
+from src.config import load_config
 from src.data_io import read_data_from_file
 from src.logging_config import setup_logging
 from src.model_utils import build_model_pipeline, wrap_log_target
@@ -22,11 +22,6 @@ from src.run_utils import (
     save_config_copy,
     update_latest_run,
 )
-
-
-def load_config(config_path: Path) -> dict:
-    with config_path.open("r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
 
 
 # -------------------------

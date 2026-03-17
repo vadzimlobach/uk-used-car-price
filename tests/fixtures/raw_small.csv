@@ -1,0 +1,16 @@
+brand,model,year,price,transmission,mileage,fuelType,tax,mpg,engineSize
+Ford,Fiesta,2018,9500,Manual,32000,Petrol,150,55.4,1.1
+Ford,Focus,2019,11500,Manual,28000,Petrol,150,52.3,1.0
+Vauxhall,Corsa,2017,7200,Manual,41000,Petrol,145,54.3,1.4
+BMW,1 Series,2016,12800,Automatic,52000,Diesel,30,68.9,2.0
+Audi,A3,2018,14900,Automatic,36000,Diesel,150,64.2,2.0
+Volkswagen,Golf,2019,13900,Manual,30000,Petrol,150,49.6,1.5
+Toyota,Yaris,2020,12500,Automatic,18000,Hybrid,140,62.8,1.5
+Honda,Civic,2017,11000,Manual,39000,Petrol,150,47.1,1.8
+Mercedes,A Class,2018,15700,Automatic,34000,Diesel,145,65.7,2.1
+Nissan,Qashqai,2019,14600,Manual,27000,Petrol,150,44.8,1.3
+Hyundai,i30,2018,9800,Manual,35000,Petrol,145,50.4,1.4
+Kia,Ceed,2020,11800,Manual,22000,Petrol,150,47.9,1.0
+Skoda,Octavia,2017,10400,Manual,48000,Diesel,20,70.6,1.6
+Peugeot,208,2019,9300,Manual,26000,Petrol,145,58.9,1.2
+Renault,Clio,2018,8700,Manual,33000,Petrol,145,56.5,0.9
