@@ -9,10 +9,10 @@ import joblib
 import pandas as pd
 from pydantic import ValidationError
 
+from src.config import load_config
 from src.logging_config import setup_logging
 from src.preprocess import add_features
 from src.schema import CarFeatures
-from src.train import load_config
 
 
 class SupportsPredict(Protocol):
