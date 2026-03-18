@@ -43,6 +43,19 @@ Inference runs inside a lightweight Docker container that loads the latest train
 
 This allows predictions without installing Python dependencies locally.
 
+### 📦 Pull image from GHCR
+```bash
+docker pull ghcr.io/vadzimlobach/uk-used-car-price:latest
+```
+Run inference:
+```bash
+docker run --rm \
+  -v "$(pwd)/artifacts:/app/artifacts" \
+  -v "$(pwd):/data" \
+  ghcr.io/vadzimlobach/uk-used-car-price:latest \
+  --input /data/input.json
+```
+
 ### 🐳 Run inference via Docker
 
 You can run model inference inside a Docker container without installing Python dependencies locally.
