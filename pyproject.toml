@@ -26,6 +26,7 @@ dev = [
   "pytest==9.0.2",
   "ruff==0.15.5",
   "pre-commit==4.5.1",
+  "httpx==0.28.1",
 ]
 train = [
   "matplotlib==3.10.8",
