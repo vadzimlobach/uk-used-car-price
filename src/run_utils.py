@@ -50,3 +50,17 @@ def update_latest_run(base_dir: str, run_id: str) -> None:
 def add_link_to_code_version(run_dir: Path) -> None:
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip()
     (run_dir / "git_commit.txt").write_text(commit)
+
+
+def resolve_latest_model_path() -> Path:
+    latest_file = Path("artifacts/runs/latest_run.txt")
+    if not latest_file.exists():
+        raise SystemExit("latest_run.txt not found. Train model first or set MODEL_PATH.")
+
+    run_id = latest_file.read_text(encoding="utf-8").strip()
+    model_path = Path("artifacts/runs") / run_id / "model.joblib"
+
+    if not model_path.exists():
+        raise SystemExit(f"Model not found at {model_path}")
+
+    return model_path

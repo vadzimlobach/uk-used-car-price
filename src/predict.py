@@ -1,41 +1,23 @@
 import argparse
 import json
 import os
-from collections.abc import Sequence
 from pathlib import Path
-from typing import Protocol
 
 import joblib
 import pandas as pd
 from pydantic import ValidationError
 
 from src.config import load_config
+from src.contracts import SupportsPredict
 from src.logging_config import setup_logging
 from src.preprocess import add_features
+from src.run_utils import resolve_latest_model_path
 from src.schema import CarFeatures
-
-
-class SupportsPredict(Protocol):
-    def predict(self, X: pd.DataFrame) -> Sequence[float]: ...
 
 
 def load_json(path: Path) -> dict:
     with path.open("r", encoding="utf-8") as f:
         return json.load(f)
-
-
-def resolve_latest_model_path() -> Path:
-    latest_file = Path("artifacts/runs/latest_run.txt")
-    if not latest_file.exists():
-        raise SystemExit("latest_run.txt not found. Train model first or set MODEL_PATH.")
-
-    run_id = latest_file.read_text(encoding="utf-8").strip()
-    model_path = Path("artifacts/runs") / run_id / "model.joblib"
-
-    if not model_path.exists():
-        raise SystemExit(f"Model not found at {model_path}")
-
-    return model_path
 
 
 def resolve_model_path(cli_model: Path | None) -> Path:
