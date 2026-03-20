@@ -1,6 +1,6 @@
 .PHONY: test lint format check train predict precommit-install precommit-run
 
-IMAGE_NAME=car-price
+IMAGE_NAME=car-price-api
 INPUT_PATH=/app/fixtures/sample_input.json
 
 test:
@@ -51,3 +51,8 @@ docker-run-env:
 		-v "$(PWD)/tests/fixtures:/app/fixtures" \
 		$(IMAGE_NAME) \
 		--input $(INPUT_PATH)
+
+docker-run-api:
+	docker run -p 8000:8000 \
+  		-v "$(pwd)/artifacts:/app/artifacts" \
+  		car-price-api
