@@ -7,7 +7,7 @@ random_state: 42
 model_type: "rf"
 
 data:
-  input_path: "tests/fixtures/raw_small.csv"
+  input_path: "tests/fixtures/preprocessed_small.csv"
   target: "price"
   allow_zero_price: False
   categorical_fill_value: "Unknown"
