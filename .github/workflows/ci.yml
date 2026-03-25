@@ -95,7 +95,7 @@ jobs:
             docker run -d --name car-price-api \
             -p 8000:8000 \
             -v "${{ github.workspace }}/artifacts:/app/artifacts" \
-            car-price
+            car-price-api
 
         - name: Wait for health endpoint
           run: |
