@@ -95,16 +95,16 @@ jobs:
             mkdir -p artifacts/runs/test_run
             echo "test_run" > artifacts/runs/latest_run.txt
             python - <<'PY'
-              from pathlib import Path
-              import joblib
+            from pathlib import Path
+            import joblib
 
-              class DummyModel:
-                def predict(self, X):
-                return [12345.0]
+            class DummyModel:
+              def predict(self, X):
+              return [12345.0]
 
-              out = Path("artifacts/runs/test_run/model.joblib")
-              out.parent.mkdir(parents=True, exist_ok=True)
-              joblib.dump(DummyModel(), out)
+            out = Path("artifacts/runs/test_run/model.joblib")
+            out.parent.mkdir(parents=True, exist_ok=True)
+            joblib.dump(DummyModel(), out)
             PY
 
         - name: Start Docker container
