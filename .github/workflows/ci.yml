@@ -90,25 +90,32 @@ jobs:
         - name: Build Docker image
           run: make docker-build
 
-        - name: Preprocess fixture dataset
+        - name: Start Docker container
           run: |
-            python -m src.preprocess \
-              --in tests/fixtures/raw_small.csv \
-              --out data/processed/processed.csv \
-              --target price
+            docker run -d --name car-price-api \
+            -p 8000:8000 \
+            -e MODEL_PATH=/app/artifacts/runs/test_run/model.joblib \
+            -v "${{ github.workspace }}/tests/artifacts:/app/artifacts" \
+            car-price-api
 
-
-        - name: Train model for docker smoke test
+        - name: Wait for health endpoint
           run: |
-            python -m pip install --upgrade pip
-            pip install -r requirements.txt
-            make train
-        
+            for i in {1..20}; do
+              if curl -fsS http://127.0.0.1:8000/health; then
+                exit 0
+              fi
+              sleep 2
+              done
+              docker logs car-price-api
+              exit 1
+
         - name: Run Docker smoke test
           run: |
-            docker run --rm \
-              -v "${{ github.workspace }}/artifacts:/app/artifacts" \
-              -v "${{ github.workspace }}/tests/fixtures:/app/fixtures" \
-              car-price \
-              --input /app/fixtures/sample_input.json
+            curl -fsS -X POST http://127.0.0.1:8000/predict \
+            -H "Content-Type: application/json" \
+            --data @tests/fixtures/sample_input.json
+
+        - name: Show container logs on failure
+          if: failure()
+          run: docker logs car-price-api
 

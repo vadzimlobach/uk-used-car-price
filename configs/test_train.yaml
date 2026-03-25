@@ -1,0 +1,43 @@
+run_name: "rf_baseline"
+
+log_level: "INFO"
+
+random_state: 42
+
+model_type: "rf"
+
+data:
+  input_path: "tests/fixtures/preprocessed_small.csv"
+  target: "price"
+  allow_zero_price: False
+  categorical_fill_value: "Unknown"
+  numeric_fill_strategy: "median"  # or "mean"
+  invalid_target_threshold: 0.1  # Warn if more than 10% of rows are dropped due to invalid target
+  reference_year: 2026  # For calculating car age
+  min_year: 1970  # Minimum valid year for cars
+  max_year: 2026  # Maximum valid year for cars
+  max_mileage_per_year: 50000
+
+model:
+  rf:
+    params:
+      n_estimators: 300
+      max_depth: 20
+      min_samples_split: 5
+      min_samples_leaf: 2
+      n_jobs: -1
+  gb:
+    params:
+      max_depth: None
+      learning_rate: 0.1
+      max_iter: 300
+  log_target: False
+
+cv:
+  n_splits: 5
+  shuffle: True
+
+artifacts_dir: "tests/artifacts/runs"
+
+analysis:
+  save_figures: True

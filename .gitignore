@@ -5,6 +5,10 @@ reports/
 logs/
 artifacts/
 
+#allow test artifacts
+!tests/artifacts/
+!tests/artifacts/**
+
 #python
 __pycache__/
 .pytest_cache/

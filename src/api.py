@@ -1,3 +1,4 @@
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -7,20 +8,27 @@ import joblib
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 
+from src.config import load_config
 from src.contracts import HealthResponse, PredictionResponse, SupportsPredict
 from src.logging_config import setup_logging
 from src.preprocess import add_features
 from src.run_utils import resolve_latest_model_path
 from src.schema import CarFeatures
-from src.train import load_config
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
+    model_path_env = os.getenv("MODEL_PATH")
+    model_path = model_path = (
+        Path(model_path_env) if model_path_env else resolve_latest_model_path()
+    )
+
     config = load_config(Path("configs/train.yaml"))
     logger = setup_logging(config["log_level"])
-    model_path = resolve_latest_model_path()
+
+    logger.info("Loading model from %s", model_path)
+
     model = cast(SupportsPredict, joblib.load(model_path))
 
     app.state.config = config

@@ -34,16 +34,16 @@ Each run includes model, metrics, config snapshot and commit hash for traceabili
 
 ## 🏗 Architecture
 
-Raw CSV → Preprocess → Train (CV) → Artifact store → Docker runtime → CI smoke test 
+Raw CSV → Preprocess → Train → Artifact store → FastAPI service (Docker) → Client
 
 
-## 🐳 Containerised Inference
+## 🐳 Docker Runtime Modes
 
 Inference runs inside a lightweight Docker container that loads the latest trained model artifact.
 
 This allows predictions without installing Python dependencies locally.
 
-### 🐳 Run inference via Docker
+### 🐳 CLI Inference (batch / debugging)
 
 You can run model inference inside a Docker container without installing Python dependencies locally.
 
@@ -88,6 +88,36 @@ Example output:
 ```json
 {"predicted_price": 11234.5}
 ```
+### FastAPI Service (production runtime)
+```bash
+docker build -t car-price-api .
+
+docker run -p 8000:8000 \
+  -v "$(pwd)/artifacts:/app/artifacts" \
+  car-price-api
+```
+
+## FastAPI Service
+
+The inference pipeline is exposed as a REST API.
+
+Endpoints:
+
+GET /health — service status  
+Example: 
+```bash
+curl http://localhost:8000/health
+```
+POST /predict — returns predicted car price
+
+Example: 
+```bash
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d @tests/fixtures/sample_input.json
+```
+
+Inputs are validated using the canonical Pydantic schema defined in ```src/schema.py```.
 
 ## 🚀 Quick Start
 ### 1️⃣ Setup
@@ -299,8 +329,6 @@ make predict
 
 ## 🚧 Future Improvements
 
-- Publish Docker image to container registry (GHCR)
-- Wrap inference as FastAPI service
 - Deploy service to AWS / Azure
 - Add prediction metadata endpoint
 - Implement basic data drift checks
@@ -322,8 +350,7 @@ This project demonstrates transition from Test Automation Engineer → MLOps Eng
 
 ### 📌 Next Milestones
 
- 1. FastApi
-
- 2. Cloud deployment (AWS recommended first)
+ 1. Cloud deployment to AWS
+ 2. IaC
 
 [def]: https://github.com/vadzimlobach/<uk-used-car-price/actions/workflows/ci.yml/badge.svg
