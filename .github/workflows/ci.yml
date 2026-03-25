@@ -100,7 +100,7 @@ jobs:
 
             class DummyModel:
               def predict(self, X):
-              return [12345.0]
+                return [12345.0]
 
             out = Path("artifacts/runs/test_run/model.joblib")
             out.parent.mkdir(parents=True, exist_ok=True)
