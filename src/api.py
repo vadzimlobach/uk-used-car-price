@@ -73,7 +73,7 @@ def predict(features: CarFeatures) -> PredictionResponse:
     logger = get_logger()
     try:
         X = pd.DataFrame([features.to_dict()])
-        X = add_features(X, logger, config["data"])
+        X = add_features(X, logger, config)
 
         pred = float(model.predict(X)[0])
 

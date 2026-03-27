@@ -4,19 +4,9 @@ from pathlib import Path
 import pandas as pd
 from pandas.api.types import is_object_dtype, is_string_dtype
 
+from src.config import load_config
 from src.data_io import read_data_from_file, save_preprocessed_data
 from src.logging_config import setup_logging
-
-PREPROCESS_CONFIG = {
-    "allow_zero_price": False,
-    "categorical_fill_value": "Unknown",
-    "numeric_fill_strategy": "median",  # or "mean"
-    "invalid_target_threshold": 0.1,  # Warn if more than 10% of rows are dropped due to invalid target
-    "reference_year": 2026,  # For calculating car age
-    "min_year": 1970,  # Minimum valid year for cars
-    "max_year": 2026,  # Maximum valid year for cars
-    "max_mileage_per_year": 50000,  # Maximum valid mileage for cars
-}
 
 
 def preprocess_data(df: pd.DataFrame, target: str, logger, config: dict) -> pd.DataFrame:
@@ -31,7 +21,6 @@ def preprocess_data(df: pd.DataFrame, target: str, logger, config: dict) -> pd.D
     # Clean the target column
     df[target] = clean_price(df[target])
     df = remove_invalid_target_rows(df, target, logger, config)
-    df = handle_missing_values(df, target, logger, config)
     df["mileage"] = clean_numeric_column(df["mileage"])
     df = add_features(df, logger, config)
 
@@ -44,6 +33,7 @@ def add_features(df: pd.DataFrame, logger, config: dict) -> pd.DataFrame:
     logger.info("Adding derived features.")
     validate_column_exists(df, "year", logger)
     validate_column_exists(df, "mileage", logger)
+    config = config["data"]
 
     rows_start = df.shape[0]
 
@@ -105,66 +95,6 @@ def clean_numeric_column(series: pd.Series) -> pd.Series:
             .str.strip()
         )
     return pd.to_numeric(series, errors="coerce")
-
-
-def handle_missing_values(df: pd.DataFrame, target: str, logger, config: dict) -> pd.DataFrame:
-    logger.info("Handling missing values.")
-    df = handle_missing_num(df, target, logger, config)
-    df = handle_missing_cat(df, logger, config)
-    logger.info("Done handling missing values.")
-    return df
-
-
-def handle_missing_num(df: pd.DataFrame, target: str, logger, config: dict) -> pd.DataFrame:
-    logger.info(
-        "Filling missing values in numeric columns with '%s'.", config["numeric_fill_strategy"]
-    )
-    num_cols = df.select_dtypes(include=["number"]).columns
-    for col in num_cols:
-        if col == target:
-            continue  # Skip target column
-        if df[col].isna().any():
-            replacement_val = calculate_num_replacement_value(
-                df[col], config["numeric_fill_strategy"], logger
-            )
-            df[col] = df[col].fillna(replacement_val)
-            logger.info(
-                "Filled missing values in numeric column '%s' with %s: %s",
-                col,
-                config["numeric_fill_strategy"],
-                replacement_val,
-            )
-    logger.info("Done filling numeric missing values.")
-    return df
-
-
-def calculate_num_replacement_value(series: pd.Series, strategy: str, logger) -> float:
-    if strategy == "median":
-        replacement = series.median()
-    elif strategy == "mean":
-        replacement = series.mean()
-    else:
-        logger.error("Invalid numeric fill strategy: %s", strategy)
-        raise ValueError(f"Invalid numeric fill strategy: {strategy}")
-    logger.debug("Calculated replacement value for numeric column: %s", replacement)
-    return replacement
-
-
-def handle_missing_cat(df: pd.DataFrame, logger, config: dict) -> pd.DataFrame:
-    logger.info(
-        "Filling missing values in categorical columns with '%s'.", config["categorical_fill_value"]
-    )
-    cat_cols = df.select_dtypes(include=["object", "string", "category"]).columns
-    for col in cat_cols:
-        if df[col].isna().any():
-            df[col] = df[col].fillna(config["categorical_fill_value"])
-            logger.info(
-                "Filled missing values in categorical column '%s' with '%s'",
-                col,
-                config["categorical_fill_value"],
-            )
-    logger.info("Done filling categorical missing values.")
-    return df
 
 
 def validate_column_exists(df: pd.DataFrame, target: str, logger) -> None:
@@ -231,7 +161,7 @@ def remove_invalid_target_rows(df: pd.DataFrame, target: str, logger, config: di
     df = df.dropna(subset=[target])
     logger.info("Dropped %s rows with NaN target values.", before_rows - df.shape[0])
     n_negative = (df[target] < 0).sum()
-    if config["allow_zero_price"]:
+    if config["data"]["allow_zero_price"]:
         df = df[df[target] >= 0]
         logger.info("Dropped %s rows with negative target values.", n_negative)
     else:
@@ -242,17 +172,15 @@ def remove_invalid_target_rows(df: pd.DataFrame, target: str, logger, config: di
 
     logger.info("Dropped total %s rows with invalid target values.", before_rows - df.shape[0])
     dropped = before_rows - df.shape[0]
-    if dropped / before_rows > config["invalid_target_threshold"]:
+    if dropped / before_rows > config["data"]["invalid_target_threshold"]:
         logger.warning(
             "Dropped more than %s%% of rows due to invalid target values. Check your data and cleaning rules.",
-            config["invalid_target_threshold"] * 100,
+            config["data"]["invalid_target_threshold"] * 100,
         )
     return df
 
 
-def run_preprocess(
-    in_path: Path, out_path: Path, target: str, logger, config: dict = PREPROCESS_CONFIG
-) -> None:
+def run_preprocess(in_path: Path, out_path: Path, target: str, logger, config: dict) -> None:
     in_path = Path(in_path)
     out_path = Path(out_path)
 
@@ -269,11 +197,18 @@ def main() -> None:
     parser.add_argument(
         "--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"]
     )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=Path("configs/train.yaml"),
+        help="Path to YAML config file with training parameters",
+    )
     args = parser.parse_args()
+    config = load_config(args.config)
 
     logger = setup_logging(level=args.log_level)
 
-    run_preprocess(args.in_path, args.out_path, args.target, logger, config=PREPROCESS_CONFIG)
+    run_preprocess(args.in_path, args.out_path, args.target, logger, config=config)
 
 
 if __name__ == "__main__":
