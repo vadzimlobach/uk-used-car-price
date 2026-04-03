@@ -32,14 +32,16 @@ def logger():
 def test_config():
     # Keep deterministic reference year for feature tests
     return {
-        "allow_zero_price": False,
-        "categorical_fill_value": "Unknown",
-        "numeric_fill_strategy": "median",
-        "invalid_target_threshold": 0.1,
-        "reference_year": 2026,
-        "min_year": 1970,
-        "max_year": 2026,
-        "max_mileage_per_year": 50000,
+        "data": {
+            "allow_zero_price": False,
+            "categorical_fill_value": "Unknown",
+            "numeric_fill_strategy": "median",
+            "invalid_target_threshold": 0.1,
+            "reference_year": 2026,
+            "min_year": 1970,
+            "max_year": 2026,
+            "max_mileage_per_year": 50000,
+        }
     }
 
 
@@ -124,7 +126,7 @@ def test_preprocess_removes_invalid_target_rows_disallow_zero(logger, test_confi
 
 def test_preprocess_keeps_zero_price_when_allowed(logger, test_config):
     cfg = dict(test_config)
-    cfg["allow_zero_price"] = True
+    cfg["data"]["allow_zero_price"] = True
 
     df = pd.DataFrame(
         {
@@ -138,36 +140,6 @@ def test_preprocess_keeps_zero_price_when_allowed(logger, test_config):
 
     assert out.shape[0] == 2
     assert sorted(out["price"].tolist()) == [0, 1000]
-
-
-def test_preprocess_fills_numeric_missing_with_median(logger, test_config):
-    df = pd.DataFrame(
-        {
-            "price": ["£1000", "£2000", "£3000"],
-            "mileage": [10_000, None, 30_000],
-            "year": [2020, 2019, 2018],
-            "tax": [10, None, 30],  # numeric imputation should fill
-        }
-    )
-    out = preprocess_data(df, target="price", logger=logger, config=test_config)
-
-    assert out["tax"].isna().sum() == 0
-
-
-def test_preprocess_fills_categorical_missing_with_unknown(logger, test_config):
-    df = pd.DataFrame(
-        {
-            "price": ["£1000", "£2000"],
-            "transmission": ["Manual", None],
-            "fuelType": [None, "Petrol"],
-            "year": [2020, 2020],
-            "mileage": [10000, 20000],
-        }
-    )
-    out = preprocess_data(df, target="price", logger=logger, config=test_config)
-
-    assert out["transmission"].tolist() == ["Manual", "Unknown"]
-    assert out["fuelType"].tolist() == ["Unknown", "Petrol"]
 
 
 # -----------------------

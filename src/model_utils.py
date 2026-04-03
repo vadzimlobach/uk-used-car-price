@@ -2,18 +2,22 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from sklearn.base import TransformerMixin
 from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
 from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
+from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LinearRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
+_TREE_BASED_MODELS = {"rf", "gb"}
+
 
 def build_model_pipeline(X_train: pd.DataFrame, config: dict) -> Pipeline:
     """Build preprocessing + regressor pipeline from config."""
-    preprocessor = build_preprocessor(X_train)
-
     model_type = config["model_type"]
+    preprocessor = build_preprocessor(X_train, model_type=model_type)
+
     random_state = int(config["random_state"])
 
     model_cfg = config["model"].get(model_type, {})
@@ -22,14 +26,25 @@ def build_model_pipeline(X_train: pd.DataFrame, config: dict) -> Pipeline:
     return Pipeline(steps=[("preprocessor", preprocessor), ("regressor", regressor)])
 
 
-def build_preprocessor(X_train: pd.DataFrame) -> ColumnTransformer:
+def build_preprocessor(X_train: pd.DataFrame, model_type: str) -> ColumnTransformer:
     numeric_features = X_train.select_dtypes(include=["number"]).columns.tolist()
     categorical_features = X_train.select_dtypes(
         include=["object", "string", "category"]
     ).columns.tolist()
 
-    numeric_transformer = StandardScaler()
-    categorical_transformer = OneHotEncoder(handle_unknown="ignore", sparse_output=False)
+    numeric_steps: list[tuple[str, TransformerMixin]] = [
+        ("imputer", SimpleImputer(strategy="median"))
+    ]
+    if model_type not in _TREE_BASED_MODELS:
+        numeric_steps.append(("scaler", StandardScaler()))
+
+    numeric_transformer = Pipeline(steps=numeric_steps)
+    categorical_transformer = Pipeline(
+        steps=[
+            ("imputer", SimpleImputer(strategy="constant", fill_value="Unknown")),
+            ("encoder", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
+        ]
+    )
 
     return ColumnTransformer(
         transformers=[

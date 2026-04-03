@@ -39,7 +39,7 @@ def test_preprocess_cli_creates_output_csv(tmp_path: Path):
     result = subprocess.run(cmd, capture_output=True, text=True)
 
     # Assert
-    assert result.returncode == 0
+    assert result.returncode == 0, result.stderr
     assert out_path.exists()
 
     out_df = pd.read_csv(out_path)

@@ -54,5 +54,5 @@ docker-run-env:
 
 docker-run-api:
 	docker run -p 8000:8000 \
-  		-v "$(pwd)/artifacts:/app/artifacts" \
+  		-v "$(PWD)/artifacts:/app/artifacts" \
   		car-price-api
