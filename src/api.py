@@ -20,9 +20,7 @@ from src.schema import CarFeatures
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     model_path_env = os.getenv("MODEL_PATH")
-    model_path = model_path = (
-        Path(model_path_env) if model_path_env else resolve_latest_model_path()
-    )
+    model_path = Path(model_path_env) if model_path_env else resolve_latest_model_path()
 
     config = load_config(Path("configs/train.yaml"))
     logger = setup_logging(config["log_level"])
@@ -73,7 +71,7 @@ def predict(features: CarFeatures) -> PredictionResponse:
     logger = get_logger()
     try:
         X = pd.DataFrame([features.to_dict()])
-        X = add_features(X, logger, config)
+        X = add_features(X, logger, config["data"])
 
         pred = float(model.predict(X)[0])
 

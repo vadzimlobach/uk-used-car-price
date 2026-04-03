@@ -1,4 +1,5 @@
 import argparse
+import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -20,9 +21,9 @@ def preprocess_data(df: pd.DataFrame, target: str, logger, config: dict) -> pd.D
     df = remove_duplicate_rows(df, logger)
     # Clean the target column
     df[target] = clean_price(df[target])
-    df = remove_invalid_target_rows(df, target, logger, config)
+    df = remove_invalid_target_rows(df, target, logger, config["data"])
     df["mileage"] = clean_numeric_column(df["mileage"])
-    df = add_features(df, logger, config)
+    df = add_features(df, logger, config["data"])
 
     logger.info("Finished preprocess. Cleaned shape=%s", df.shape)
 
@@ -33,13 +34,14 @@ def add_features(df: pd.DataFrame, logger, config: dict) -> pd.DataFrame:
     logger.info("Adding derived features.")
     validate_column_exists(df, "year", logger)
     validate_column_exists(df, "mileage", logger)
-    config = config["data"]
+
+    reference_year = config.get("reference_year") or datetime.datetime.now().year
 
     rows_start = df.shape[0]
 
     df = drop_rows_with_missing_target(df, "year", logger)
     df = drop_rows_not_in_range(df, "year", config["min_year"], config["max_year"], logger)
-    car_age = config["reference_year"] - df["year"]
+    car_age = reference_year - df["year"]
     df = df.copy()  # Avoid SettingWithCopyWarning
     df["car_age"] = car_age
     df = df.drop(columns=["year"])  # Drop original year column after creating car_age
@@ -161,7 +163,7 @@ def remove_invalid_target_rows(df: pd.DataFrame, target: str, logger, config: di
     df = df.dropna(subset=[target])
     logger.info("Dropped %s rows with NaN target values.", before_rows - df.shape[0])
     n_negative = (df[target] < 0).sum()
-    if config["data"]["allow_zero_price"]:
+    if config["allow_zero_price"]:
         df = df[df[target] >= 0]
         logger.info("Dropped %s rows with negative target values.", n_negative)
     else:
@@ -172,10 +174,10 @@ def remove_invalid_target_rows(df: pd.DataFrame, target: str, logger, config: di
 
     logger.info("Dropped total %s rows with invalid target values.", before_rows - df.shape[0])
     dropped = before_rows - df.shape[0]
-    if dropped / before_rows > config["data"]["invalid_target_threshold"]:
+    if dropped / before_rows > config["invalid_target_threshold"]:
         logger.warning(
             "Dropped more than %s%% of rows due to invalid target values. Check your data and cleaning rules.",
-            config["data"]["invalid_target_threshold"] * 100,
+            config["invalid_target_threshold"] * 100,
         )
     return df
 

@@ -26,9 +26,13 @@ def _toy_df(n: int = 30) -> pd.DataFrame:
     )
 
 
-def test_build_preprocessor_returns_column_transformer():
+testdata = ["rf", "gb", "linear"]
+
+
+@pytest.mark.parametrize("model_type", testdata)
+def test_build_preprocessor_returns_column_transformer(model_type):
     X = _toy_df()
-    pre = build_preprocessor(X)
+    pre = build_preprocessor(X, model_type)
 
     assert isinstance(pre, ColumnTransformer)
 
