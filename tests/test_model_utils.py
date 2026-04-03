@@ -3,7 +3,9 @@ import pandas as pd
 import pytest
 from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 from src.model_utils import (
     build_model_pipeline,
@@ -102,3 +104,22 @@ def test_build_model_pipeline_is_pipeline_with_expected_steps():
 
     assert "preprocessor" in pipe.named_steps
     assert "regressor" in pipe.named_steps
+
+
+def test_build_preprocessor_applies_scaling_only_for_non_tree_models():
+    X = _toy_df()
+
+    rf_pre = build_preprocessor(X, "rf")
+    linear_pre = build_preprocessor(X, "linear")
+
+    rf_pre.fit(X)
+    linear_pre.fit(X)
+
+    rf_num_pipeline = rf_pre.named_transformers_["num"]
+    linear_num_pipeline = linear_pre.named_transformers_["num"]
+
+    assert isinstance(rf_num_pipeline.named_steps["imputer"], SimpleImputer)
+    assert "scaler" not in rf_num_pipeline.named_steps
+
+    assert isinstance(linear_num_pipeline.named_steps["imputer"], SimpleImputer)
+    assert isinstance(linear_num_pipeline.named_steps["scaler"], StandardScaler)
