@@ -13,6 +13,8 @@ RAW_FEATURES: list[str] = [
     "engineSize",
 ]
 
+SCHEMA_VERSION = "v1"
+
 
 class CarFeatures(BaseModel):
     model_config = ConfigDict(extra="forbid")

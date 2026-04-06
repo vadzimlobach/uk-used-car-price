@@ -42,10 +42,11 @@ def test_predict_returns_prediction(api_client: TestClient, sample_input: dict) 
     assert response.status_code == 200
 
     body = response.json()
+    model_version = body["model_version"]
     assert "predicted_price" in body
     assert isinstance(body["predicted_price"], float)
-    assert "model_run_id" in body
-    assert isinstance(body["model_run_id"], str)
+    assert "run_id" in model_version
+    assert isinstance(model_version["run_id"], str)
 
 
 def test_predict_missing_required_field_returns_422(
