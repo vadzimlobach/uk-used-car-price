@@ -1,18 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field
 
-RAW_FEATURES: list[str] = [
-    "brand",
-    "model",
-    "year",
-    "price",
-    "transmission",
-    "mileage",
-    "fuelType",
-    "tax",
-    "mpg",
-    "engineSize",
-]
-
 SCHEMA_VERSION = "v1"
 
 
@@ -36,3 +23,11 @@ class CarFeatures(BaseModel):
 
 class CarTrainingFeatures(CarFeatures):
     price: int = Field(..., ge=0, description="Price in pounds")
+
+
+def get_inference_features() -> list[str]:
+    return list(CarFeatures.model_fields.keys())
+
+
+def get_training_features() -> list[str]:
+    return list(CarTrainingFeatures.model_fields.keys())
