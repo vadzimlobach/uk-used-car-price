@@ -43,10 +43,29 @@ def test_predict_returns_prediction(api_client: TestClient, sample_input: dict) 
 
     body = response.json()
     model_version = body["model_version"]
+
     assert "predicted_price" in body
     assert isinstance(body["predicted_price"], float)
+    assert "model_version" in body
     assert "run_id" in model_version
-    assert isinstance(model_version["run_id"], str)
+    assert "git_commit" in model_version
+    assert "model_type" in model_version
+
+
+def test_metadata_returns_version_info(api_client):
+    response = api_client.get("/metadata")
+
+    assert response.status_code == 200
+    body = response.json()
+    model_version = body["model_version"]
+
+    assert body["service_name"] == "uk-used-car-price-api"
+    assert "model_version" in body
+    assert "run_id" in model_version
+    assert "git_commit" in model_version
+    assert "model_type" in model_version
+    assert "prediction_features" in body
+    assert "schema_version" in body
 
 
 def test_predict_missing_required_field_returns_422(

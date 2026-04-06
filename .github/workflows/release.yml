@@ -32,7 +32,9 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.tag }} .
+          docker build \
+          --build-arg GIT_COMMIT=${{ github.sha }} \
+          -t ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.tag }} .
           docker tag ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.tag }} ghcr.io/${{ github.repository }}:latest
 
       - name: Push image
