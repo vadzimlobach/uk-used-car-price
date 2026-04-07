@@ -18,7 +18,4 @@ scripts/
 
 tests/
 
-artifacts/runs/*
-artifacts/*.joblib
-
 pytest.ini

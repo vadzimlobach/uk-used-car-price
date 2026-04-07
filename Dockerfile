@@ -11,6 +11,7 @@ WORKDIR /app
 
 COPY pyproject.toml README.md ./
 COPY src/ src/
+COPY artifacts/ artifacts/
 COPY configs/ configs/
 
 RUN pip install .
