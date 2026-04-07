@@ -3,7 +3,10 @@ data/processed/
 models/
 reports/
 logs/
-artifacts/
+artifacts/runs/
+
+#allow serving artifacts
+!artifacts/serving
 
 #allow test artifacts
 !tests/artifacts/
@@ -23,3 +26,4 @@ venv/
 .vscode/
 .idea/
 data/raw/combined.csv
+artifacts/serving/model.joblib

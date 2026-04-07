@@ -16,6 +16,13 @@ data/processed/
 scripts/
 scripts/
 
+artifacts/runs/
+artifacts/*
+!artifacts/serving/
+!artifacts/serving/model.joblib
+!artifacts/serving/metadata.json
+
 tests/
+infra/
 
 pytest.ini
