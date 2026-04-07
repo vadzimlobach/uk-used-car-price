@@ -5,13 +5,15 @@ ARG GIT_COMMIT=unknown
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    GIT_COMMIT=$GIT_COMMIT
+    GIT_COMMIT=$GIT_COMMIT \
+    MODEL_PATH=/app/artifacts/serving/model.joblib \
+    MODEL_METADATA_PATH=/app/artifacts/serving/metadata.json
 
 WORKDIR /app
 
 COPY pyproject.toml README.md ./
 COPY src/ src/
-COPY artifacts/ artifacts/
+COPY artifacts/serving artifacts/serving
 COPY configs/ configs/
 
 RUN pip install .
