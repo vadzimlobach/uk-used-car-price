@@ -1,3 +1,4 @@
+import os
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -64,3 +65,34 @@ def resolve_latest_model_path() -> Path:
         raise SystemExit(f"Model not found at {model_path}")
 
     return model_path
+
+
+def resolve_run_id(model_path: Path) -> str:
+    return model_path.parent.name
+
+
+def read_git_commit_from_run(model_path: Path) -> str:
+    commit_path = model_path.parent / "git_commit.txt"
+    if commit_path.exists():
+        return commit_path.read_text(encoding="utf-8").strip()
+    return os.getenv("GIT_COMMIT", "unknown")
+
+
+def read_model_type_from_run(model_path: Path) -> str | None:
+    config_path = model_path.parent / "config.yaml"
+    if not config_path.exists():
+        return None
+
+    try:
+        config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+        return config.get("model_type")
+    except Exception:
+        return None
+
+
+def build_model_version(model_path: Path) -> dict:
+    return {
+        "run_id": resolve_run_id(model_path),
+        "git_commit": read_git_commit_from_run(model_path),
+        "model_type": read_model_type_from_run(model_path),
+    }

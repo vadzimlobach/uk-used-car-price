@@ -86,7 +86,14 @@ docker run --rm \
 Example output:
 
 ```json
-{"predicted_price": 11234.5}
+{
+  "predicted_price": 11234.5,
+  "model_version": {
+    "run_id": "20260327_143827_rf_baseline",
+    "git_commit": "6f8a15f...",
+    "model_type": "rf"
+  }
+}
 ```
 ### FastAPI Service (production runtime)
 ```bash
@@ -101,6 +108,10 @@ docker run -p 8000:8000 \
 
 The inference pipeline is exposed as a REST API.
 
+ - Predictions are fully traceable to training artifacts (run_id)
+ - API exposes /metadata for model and schema introspection
+ - Inference schema is enforced via Pydantic and surfaced via API
+
 Endpoints:
 
 GET /health — service status  
@@ -108,14 +119,21 @@ Example:
 ```bash
 curl http://localhost:8000/health
 ```
-POST /predict — returns predicted car price
 
+POST /predict — returns predicted car price
 Example: 
 ```bash
 curl -X POST http://localhost:8000/predict \
   -H "Content-Type: application/json" \
   -d @tests/fixtures/sample_input.json
 ```
+
+GET /metadata - service and model metadata
+Example:
+```bash
+curl http://localhost:8000/metadata
+```
+
 
 Inputs are validated using the canonical Pydantic schema defined in ```src/schema.py```.
 

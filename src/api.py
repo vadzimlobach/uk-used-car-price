@@ -9,11 +9,17 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException
 
 from src.config import load_config
-from src.contracts import HealthResponse, PredictionResponse, SupportsPredict
+from src.contracts import (
+    HealthResponse,
+    MetadataResponse,
+    ModelVersion,
+    PredictionResponse,
+    SupportsPredict,
+)
 from src.logging_config import setup_logging
 from src.preprocess import add_features
-from src.run_utils import resolve_latest_model_path
-from src.schema import CarFeatures
+from src.run_utils import build_model_version, resolve_latest_model_path
+from src.schema import SCHEMA_VERSION, CarFeatures
 
 
 @asynccontextmanager
@@ -28,11 +34,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("Loading model from %s", model_path)
 
     model = cast(SupportsPredict, joblib.load(model_path))
+    model_version = build_model_version(model_path)
 
     app.state.config = config
     app.state.logger = logger
     app.state.model = model
     app.state.model_path = model_path
+    app.state.model_version = model_version
 
     yield
 
@@ -57,11 +65,25 @@ def get_config() -> dict[str, Any]:
     return cast(dict[str, Any], app.state.config)
 
 
+def get_model_version() -> ModelVersion:
+    return cast(ModelVersion, app.state.model_version)
+
+
 @app.get("/health", response_model=HealthResponse)
 def health() -> HealthResponse:
     if not hasattr(app.state, "model"):
         raise HTTPException(status_code=503, detail="Model not loaded")
     return HealthResponse(status="OK")
+
+
+@app.get("/metadata", response_model=MetadataResponse)
+def metadata() -> MetadataResponse:
+    return MetadataResponse(
+        service_name="uk-used-car-price-api",
+        model_version=get_model_version(),
+        schema_version=SCHEMA_VERSION,
+        prediction_features=list(CarFeatures.model_fields.keys()),
+    )
 
 
 @app.post("/predict", response_model=PredictionResponse)
@@ -75,9 +97,7 @@ def predict(features: CarFeatures) -> PredictionResponse:
 
         pred = float(model.predict(X)[0])
 
-        return PredictionResponse(
-            predicted_price=pred, model_run_id=app.state.model_path.parent.name
-        )
+        return PredictionResponse(predicted_price=pred, model_version=get_model_version())
 
     except Exception as exc:
         logger.exception("Prediction failed")

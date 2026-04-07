@@ -1,12 +1,14 @@
-from src.schema import RAW_FEATURES, CarTrainingFeatures
+from src.schema import CarTrainingFeatures, get_training_features
 
 
 def test_raw_features_unique_and_nonempty():
-    assert len(RAW_FEATURES) > 0
-    assert len(set(RAW_FEATURES)) == len(RAW_FEATURES)
+    training_features = get_training_features()
+    assert len(training_features) > 0
+    assert len(set(training_features)) == len(training_features)
 
 
 def test_carfeatures_validation_happy_path():
+    training_features = get_training_features()
     x = CarTrainingFeatures(
         year=2019,
         mileage=45000,
@@ -20,5 +22,5 @@ def test_carfeatures_validation_happy_path():
         fuelType="diesel",
     )
     d = x.to_dict()
-    for feature in RAW_FEATURES:
+    for feature in training_features:
         assert feature in d
