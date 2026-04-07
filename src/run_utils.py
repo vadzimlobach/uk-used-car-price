@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 from datetime import datetime
@@ -67,6 +68,22 @@ def resolve_latest_model_path() -> Path:
     return model_path
 
 
+def read_model_version_from_serving_metadata() -> dict | None:
+    metadata_path = Path(os.getenv("MODEL_METADATA_PATH", "artifacts/serving/metadata.json"))
+    if not metadata_path.exists():
+        return None
+
+    try:
+        data = json.loads(metadata_path.read_text(encoding="utf-8"))
+        return {
+            "run_id": data.get("run_id", "unknown"),
+            "git_commit": data.get("git_commit", "unknown"),
+            "model_type": data.get("model_type"),
+        }
+    except Exception:
+        return None
+
+
 def resolve_run_id(model_path: Path) -> str:
     return model_path.parent.name
 
@@ -91,6 +108,10 @@ def read_model_type_from_run(model_path: Path) -> str | None:
 
 
 def build_model_version(model_path: Path) -> dict:
+    serving_metadata = read_model_version_from_serving_metadata()
+    if serving_metadata is not None:
+        return serving_metadata
+
     return {
         "run_id": resolve_run_id(model_path),
         "git_commit": read_git_commit_from_run(model_path),

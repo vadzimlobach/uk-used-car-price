@@ -1,0 +1,11 @@
+{
+  "brand": "volvo",
+  "model": "s40",
+  "year": 2004,
+  "transmission": "Manual",
+  "mileage": 76300,
+  "fuelType": "Petrol",
+  "tax": 340,
+  "mpg": 30.0,
+  "engineSize": 2.4
+}
