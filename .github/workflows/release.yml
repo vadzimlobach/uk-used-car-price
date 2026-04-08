@@ -13,10 +13,22 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ vars.AWS_REGION }}
+      
+      - name: Download serving model from S3
+        run: |
+          mkdir -p artifacts/serving
+          aws s3 cp "${{ vars.S3_MODEL_URI }}" artifacts/serving/model.joblib
 
       - name: Set image tag
         id: meta
